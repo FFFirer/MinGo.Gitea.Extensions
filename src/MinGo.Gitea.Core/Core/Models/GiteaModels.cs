@@ -23,7 +23,7 @@ public class Commit
 
 public class Workflow
 {
-    public int Id { get; set; }
+    public required string Id { get; set; }
     public required string Name { get; set; }
     public required string Path { get; set; }
     public required string State { get; set; }
@@ -39,3 +39,4 @@ public class WorkflowRun
     public DateTime UpdatedAt { get; set; }
     public required string Branch { get; set; }
 }
+

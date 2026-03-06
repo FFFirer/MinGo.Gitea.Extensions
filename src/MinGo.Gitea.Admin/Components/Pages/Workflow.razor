@@ -6,74 +6,128 @@
     <Steps CurrentStep="2" />
 </Card>
 
-<Card Title="工作流列表">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        @foreach (var workflow in Workflows)
-        {
-            <WorkflowCard 
-                Name="@workflow.Name" 
-                Description="@workflow.Description" 
-                Branch="@workflow.Branch" 
-                IsActive="SelectedWorkflow == workflow.Name"
-                OnSelect="SelectWorkflow"
-            />
-        }
+<Card Title="选择工作流">
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-800 mb-2">当前仓库</label>
+        <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedRepo</div>
     </div>
-    <div class="mt-4 flex gap-2">
+    
+    @if (IsLoading)
+    {
+        <div class="flex justify-center items-center py-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+    }
+    else if (Workflows.Count == 0)
+    {
+        <div class="text-center py-8 text-gray-500">
+            该仓库没有可用的工作流
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            @foreach (var workflow in Workflows)
+            {
+                <WorkflowCard 
+                    Name="@workflow.Name" 
+                    Description="@workflow.Path" 
+                    Branch="@workflow.State" 
+                    IsActive="SelectedWorkflowId == workflow.Id.ToString()"
+                    OnSelect="(name) => SelectWorkflow(workflow.Id.ToString())"
+                />
+            }
+        </div>
+    }
+    
+    <div class="mt-6 flex gap-2">
         <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep">上一步</button>
-        <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="NextStep" disabled="string.IsNullOrEmpty(SelectedWorkflow)">下一步</button>
+        <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="NextStep" disabled="@string.IsNullOrEmpty(SelectedWorkflowId)">下一步</button>
     </div>
 </Card>
 
 <Toast Message="@ToastMessage" Type="@ToastType" Visible="@ShowToast" OnClose="CloseToast" />
 
 @code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Repo { get; set; }
+    
     private string SelectedRepo { get; set; } = "";
-    private string SelectedWorkflow { get; set; } = "";
+    private string SelectedWorkflowId { get; set; } = "";
     private string ToastMessage { get; set; } = "";
     private Toast.ToastType ToastType { get; set; } = Toast.ToastType.Success;
     private bool ShowToast { get; set; } = false;
+    private List<MinGo.Gitea.Core.Models.Workflow> Workflows { get; set; } = new List<MinGo.Gitea.Core.Models.Workflow>();
+    private bool IsLoading { get; set; } = false;
 
-    private List<WorkflowItem> Workflows { get; set; } = new List<WorkflowItem>
+    protected override async Task OnInitializedAsync()
     {
-        new WorkflowItem { Name = "CI/CD Pipeline", Description = "持续集成和部署流水线", Branch = "main" },
-        new WorkflowItem { Name = "Code Quality", Description = "代码质量检查", Branch = "main" },
-        new WorkflowItem { Name = "Security Scan", Description = "安全扫描", Branch = "main" }
-    };
-
-    protected override void OnInitialized()
-    {
-        // 从URL参数获取仓库信息
-        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
-        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        SelectedRepo = query["repo"] ?? "";
-    }
-
-    private async Task SelectWorkflow(string workflowName)
-    {
-        SelectedWorkflow = workflowName;
-    }
-
-    private async Task NextStep()
-    {
-        if (!string.IsNullOrEmpty(SelectedWorkflow))
+        if (string.IsNullOrEmpty(Repo))
         {
-            ShowSuccessToast("成功选择工作流");
-            // 跳转到选择分支页面
-            NavigationManager.NavigateTo($"/branch?repo={SelectedRepo}&workflow={SelectedWorkflow}");
+            NavigationManager.NavigateTo("/trigger-workflow");
+            return;
+        }
+        
+        SelectedRepo = Repo;
+        await LoadWorkflowsAsync();
+    }
+
+    private async Task LoadWorkflowsAsync()
+    {
+        IsLoading = true;
+        try
+        {
+            var (owner, repo) = ParseRepo(SelectedRepo);
+            var workflows = await WorkflowService.GetWorkflowsAsync(owner, repo);
+            Workflows = workflows.ToList();
+        }
+        catch (Exception ex)
+        {
+            ShowErrorToast($"加载工作流失败: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 
-    private async Task PrevStep()
+    private (string owner, string repo) ParseRepo(string repoFullName)
     {
-        // 返回到选择仓库页面
+        var parts = repoFullName.Split('/');
+        if (parts.Length != 2)
+        {
+            throw new Exception("仓库格式错误");
+        }
+        return (parts[0], parts[1]);
+    }
+
+    private void SelectWorkflow(string workflowId)
+    {
+        SelectedWorkflowId = workflowId;
+    }
+
+    private void NextStep()
+    {
+        if (!string.IsNullOrEmpty(SelectedWorkflowId))
+        {
+            NavigationManager.NavigateTo($"/branch?repo={SelectedRepo}&workflowId={SelectedWorkflowId}");
+        }
+        else
+        {
+            ShowErrorToast("请选择工作流");
+        }
+    }
+
+    private void PrevStep()
+    {
         NavigationManager.NavigateTo("/trigger-workflow");
     }
 
-    private void ShowSuccessToast(string message)
+    private void ShowErrorToast(string message)
     {
         ToastMessage = message;
-        ToastType = Toast.ToastType.Success;
+        ToastType = Toast.ToastType.Error;
         ShowToast = true;
     }
 
@@ -85,10 +139,6 @@
     [Inject]
     private NavigationManager NavigationManager { get; set; } = default!;
 
-    private class WorkflowItem
-    {
-        public string? Name { get; set; }
-        public string? Description { get; set; }
-        public string? Branch { get; set; }
-    }
+    [Inject]
+    private MinGo.Gitea.Application.Services.WorkflowService WorkflowService { get; set; } = default!;
 }

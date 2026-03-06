@@ -81,7 +81,7 @@ public class GiteaApiClient : IGiteaApiClient
         
         return result?.Workflows.Select(w => new Workflow
         {
-            Id = (int)w.Id,
+            Id = w.Id,
             Name = w.Name,
             Path = w.Path,
             State = w.State

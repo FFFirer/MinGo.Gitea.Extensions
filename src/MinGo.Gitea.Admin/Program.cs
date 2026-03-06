@@ -29,18 +29,29 @@ builder.Services.AddDbContext<GiteaExtensionsDbContext>(options =>
 // 注册 Gitea 配置服务
 builder.Services.AddScoped<GiteaConfigService>();
 
+// 注册 Gitea API 客户端工厂
+builder.Services.AddScoped<GiteaApiClientFactory>();
+
 // 注册 Gitea API 客户端
-builder.Services.AddScoped<MinGo.Gitea.Core.Interfaces.IGiteaApiClient, GiteaApiClient>(provider =>
+builder.Services.AddScoped<MinGo.Gitea.Core.Interfaces.IGiteaApiClient>(provider =>
 {
-    var httpClient = provider.GetRequiredService<HttpClient>();
-    // 暂时使用默认配置，实际使用时会从数据库读取
-    var config = new GiteaConfig
+    var factory = provider.GetRequiredService<GiteaApiClientFactory>();
+    try
     {
-        ServerUrl = "",
-        Token = "",
-        Username = ""
-    };
-    return new GiteaApiClient(httpClient, config);
+        return factory.Create();
+    }
+    catch
+    {
+        // 如果配置不存在，使用默认配置
+        var httpClient = provider.GetRequiredService<HttpClient>();
+        var config = new GiteaConfig
+        {
+            ServerUrl = "",
+            Token = "",
+            Username = ""
+        };
+        return factory.Create(config);
+    }
 });
 
 // 注册工作流服务

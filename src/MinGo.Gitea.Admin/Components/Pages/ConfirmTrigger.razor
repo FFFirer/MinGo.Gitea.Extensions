@@ -13,55 +13,135 @@
     </div>
     <div class="mb-4">
         <label class="block text-sm font-medium text-gray-800 mb-2">工作流</label>
-        <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedWorkflow</div>
+        <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedWorkflowName</div>
     </div>
     <div class="mb-4">
         <label class="block text-sm font-medium text-gray-800 mb-2">分支</label>
         <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedBranch</div>
     </div>
     <div class="mt-4 flex gap-2">
-        <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep">上一步</button>
-        <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="TriggerWorkflow">确认触发</button>
+        <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep" disabled="@IsLoading">上一步</button>
+        <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="TriggerWorkflow" disabled="@IsLoading">
+            @(IsLoading ? "触发中..." : "确认触发")
+        </button>
     </div>
 </Card>
 
 <Toast Message="@ToastMessage" Type="@ToastType" Visible="@ShowToast" OnClose="CloseToast" />
 
 @code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Repo { get; set; }
+    
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? WorkflowId { get; set; }
+    
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Branch { get; set; }
+    
     private string SelectedRepo { get; set; } = "";
-    private string SelectedWorkflow { get; set; } = "";
+    private string SelectedWorkflowId { get; set; } = "";
+    private string SelectedWorkflowName { get; set; } = "";
     private string SelectedBranch { get; set; } = "";
     private string ToastMessage { get; set; } = "";
     private Toast.ToastType ToastType { get; set; } = Toast.ToastType.Success;
     private bool ShowToast { get; set; } = false;
+    private bool IsLoading { get; set; } = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // 从URL参数获取仓库、工作流和分支信息
-        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
-        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        SelectedRepo = query["repo"] ?? "";
-        SelectedWorkflow = query["workflow"] ?? "";
-        SelectedBranch = query["branch"] ?? "";
+        if (string.IsNullOrEmpty(Repo) || string.IsNullOrEmpty(WorkflowId) || string.IsNullOrEmpty(Branch))
+        {
+            NavigationManager.NavigateTo("/trigger-workflow");
+            return;
+        }
+        
+        SelectedRepo = Repo;
+        SelectedWorkflowId = WorkflowId;
+        SelectedBranch = Branch;
+        await LoadWorkflowNameAsync();
+    }
+
+    private async Task LoadWorkflowNameAsync()
+    {
+        try
+        {
+            var (owner, repo) = ParseRepo(SelectedRepo);
+            var workflows = await WorkflowService.GetWorkflowsAsync(owner, repo);
+            var workflow = workflows.FirstOrDefault(w => w.Id.ToString() == SelectedWorkflowId);
+            if (workflow != null)
+            {
+                SelectedWorkflowName = workflow.Name;
+            }
+            else
+            {
+                SelectedWorkflowName = "未知工作流";
+            }
+        }
+        catch (Exception ex)
+        {
+            SelectedWorkflowName = "未知工作流";
+            ShowErrorToast($"加载工作流信息失败: {ex.Message}");
+        }
+    }
+
+    private (string owner, string repo) ParseRepo(string repoFullName)
+    {
+        var parts = repoFullName.Split('/');
+        if (parts.Length != 2)
+        {
+            throw new Exception("仓库格式错误");
+        }
+        return (parts[0], parts[1]);
     }
 
     private async Task TriggerWorkflow()
     {
-        ShowSuccessToast("工作流触发成功");
-        // 跳转到工作流详情页面
-        NavigationManager.NavigateTo("/workflow-detail");
+        IsLoading = true;
+        try
+        {
+            var (owner, repo) = ParseRepo(SelectedRepo);
+            var workflowRun = await WorkflowService.TriggerWorkflowAsync(owner, repo, SelectedWorkflowId, SelectedBranch);
+            if (workflowRun != null)
+            {
+                ShowSuccessToast("工作流触发成功");
+                // 跳转到工作流详情页面
+                NavigationManager.NavigateTo($"/workflow-detail?repo={SelectedRepo}&runId={workflowRun.Id}");
+            }
+            else
+            {
+                ShowErrorToast("工作流触发失败");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowErrorToast($"触发工作流失败: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
-    private async Task PrevStep()
+    private void PrevStep()
     {
-        // 返回到选择分支页面
-        NavigationManager.NavigateTo($"/branch?repo={SelectedRepo}&workflow={SelectedWorkflow}");
+        NavigationManager.NavigateTo($"/branch?repo={SelectedRepo}&workflowId={SelectedWorkflowId}");
     }
 
     private void ShowSuccessToast(string message)
     {
         ToastMessage = message;
         ToastType = Toast.ToastType.Success;
+        ShowToast = true;
+    }
+
+    private void ShowErrorToast(string message)
+    {
+        ToastMessage = message;
+        ToastType = Toast.ToastType.Error;
         ShowToast = true;
     }
 
@@ -72,4 +152,7 @@
 
     [Inject]
     private NavigationManager NavigationManager { get; set; } = default!;
+
+    [Inject]
+    private MinGo.Gitea.Application.Services.WorkflowService WorkflowService { get; set; } = default!;
 }

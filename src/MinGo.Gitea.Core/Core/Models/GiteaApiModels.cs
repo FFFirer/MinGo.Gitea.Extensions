@@ -35,7 +35,7 @@ public class GiteaCommit
 // 工作流模型
 public class GiteaWorkflow
 {
-    public long Id { get; set; }
+    public required string Id { get; set; }
     public required string Name { get; set; }
     public required string Path { get; set; }
     public required string State { get; set; }
