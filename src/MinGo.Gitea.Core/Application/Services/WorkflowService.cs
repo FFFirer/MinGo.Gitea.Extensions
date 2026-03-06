@@ -7,9 +7,9 @@ namespace MinGo.Gitea.Application.Services;
 public class WorkflowService
 {
     private readonly IGiteaApiClient _apiClient;
-    private readonly GiteaExtensionsDbContext _dbContext;
+    private readonly GiteaExtensionsDbContext? _dbContext;
 
-    public WorkflowService(IGiteaApiClient apiClient, GiteaExtensionsDbContext dbContext = null)
+    public WorkflowService(IGiteaApiClient apiClient, GiteaExtensionsDbContext? dbContext = null)
     {
         _apiClient = apiClient;
         _dbContext = dbContext;
@@ -30,13 +30,13 @@ public class WorkflowService
         return await _apiClient.GetWorkflowsAsync(owner, repo);
     }
 
-    public async Task<Repository> GetRepositoryByNameAsync(string fullName)
+    public async Task<Repository?> GetRepositoryByNameAsync(string fullName)
     {
         var repositories = await GetRepositoriesAsync();
         return repositories.FirstOrDefault(r => r.FullName.Equals(fullName, StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task<WorkflowRun> TriggerWorkflowAsync(string owner, string repo, string workflowId, string branch, Dictionary<string, string> inputs = null)
+    public async Task<WorkflowRun?> TriggerWorkflowAsync(string owner, string repo, string workflowId, string branch, Dictionary<string, string>? inputs = null)
     {
         var run = await _apiClient.TriggerWorkflowAsync(owner, repo, workflowId, branch, inputs);
         
@@ -65,7 +65,7 @@ public class WorkflowService
         return run;
     }
 
-    public async Task<WorkflowRun> GetWorkflowRunAsync(string owner, string repo, int runId)
+    public async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId)
     {
         return await _apiClient.GetWorkflowRunAsync(owner, repo, runId);
     }

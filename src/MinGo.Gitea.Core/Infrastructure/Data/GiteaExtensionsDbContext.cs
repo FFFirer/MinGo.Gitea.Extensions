@@ -21,8 +21,8 @@ public class GiteaExtensionsDbContext : DbContext
         
         // 配置ScheduledTrigger模型
         var jsonConverter = new ValueConverter<Dictionary<string, string>, string>(
-            v => JsonConvert.SerializeObject(v),
-            v => JsonConvert.DeserializeObject<Dictionary<string, string>>(v ?? "{}")
+            v => JsonConvert.SerializeObject(v ?? new Dictionary<string, string>()),
+            v => JsonConvert.DeserializeObject<Dictionary<string, string>>(v ?? "{}") ?? new Dictionary<string, string>()
         );
         
         modelBuilder.Entity<ScheduledTrigger>()

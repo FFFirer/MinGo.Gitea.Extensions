@@ -63,7 +63,7 @@ public class GiteaConfigService
     /// 获取Gitea配置
     /// </summary>
     /// <returns>Gitea配置</returns>
-    public async Task<GiteaConfig> GetConfigAsync()
+    public async Task<GiteaConfig?> GetConfigAsync()
     {
         return await _dbContext.GiteaConfigs.FirstOrDefaultAsync();
     }

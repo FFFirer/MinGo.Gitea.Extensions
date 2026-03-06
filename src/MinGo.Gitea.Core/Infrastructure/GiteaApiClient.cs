@@ -44,14 +44,14 @@ public class GiteaApiClient : IGiteaApiClient
         var content = await response.Content.ReadAsStringAsync();
         var repos = JsonConvert.DeserializeObject<List<dynamic>>(content);
         
-        return repos.Select(r => new Repository
+        return repos?.Select(r => new Repository
         {
             Id = r.id,
             Name = r.name,
             FullName = r.full_name,
             Owner = r.owner.login,
             HtmlUrl = r.html_url
-        });
+        }) ?? Enumerable.Empty<Repository>();
     }
 
     public async Task<IEnumerable<Branch>> GetBranchesAsync(string owner, string repo)
@@ -61,7 +61,7 @@ public class GiteaApiClient : IGiteaApiClient
         var content = await response.Content.ReadAsStringAsync();
         var branches = JsonConvert.DeserializeObject<List<dynamic>>(content);
         
-        return branches.Select(b => new Branch
+        return branches?.Select(b => new Branch
         {
             Name = b.name,
             Commit = new Commit
@@ -69,7 +69,7 @@ public class GiteaApiClient : IGiteaApiClient
                 Sha = b.commit.sha,
                 Url = b.commit.url
             }
-        });
+        }) ?? Enumerable.Empty<Branch>();
     }
 
     public async Task<IEnumerable<Workflow>> GetWorkflowsAsync(string owner, string repo)
@@ -89,7 +89,7 @@ public class GiteaApiClient : IGiteaApiClient
         }) ?? Enumerable.Empty<Workflow>();
     }
 
-    public async Task<WorkflowRun> TriggerWorkflowAsync(string owner, string repo, string workflowId, string branch, Dictionary<string, string> inputs = null)
+    public async Task<WorkflowRun?> TriggerWorkflowAsync(string owner, string repo, string workflowId, string branch, Dictionary<string, string>? inputs = null)
     {
         var requestBody = new
         {
@@ -106,12 +106,17 @@ public class GiteaApiClient : IGiteaApiClient
         return runs.FirstOrDefault();
     }
 
-    public async Task<WorkflowRun> GetWorkflowRunAsync(string owner, string repo, int runId)
+    public async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId)
     {
         var response = await _httpClient.GetAsync($"/api/v1/repos/{owner}/{repo}/actions/runs/{runId}");
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var run = JsonConvert.DeserializeObject<dynamic>(content);
+        
+        if (run == null)
+        {
+            return null;
+        }
         
         return new WorkflowRun
         {

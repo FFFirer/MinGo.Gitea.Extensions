@@ -10,7 +10,7 @@ namespace MinGo.Gitea.Core.Tests;
 public class GiteaApiClientTests
 {
     private const string TestFlagEnvironmentVariable = "RUN_GITEA_API_TESTS";
-    private static bool IsGiteaApiTestEnabled => Environment.GetEnvironmentVariable(TestFlagEnvironmentVariable) == "1";
+    public static bool IsGiteaApiTestEnabled => Environment.GetEnvironmentVariable(TestFlagEnvironmentVariable) == "1";
     
     private readonly HttpClient _httpClient;
     private readonly GiteaConfig _config;
@@ -57,11 +57,7 @@ public class GiteaApiClientTests
     [Fact]
     public async Task TestConnectionAsync_ShouldReturnTrue_WhenConnectionIsSuccessful()
     {
-        if (!IsGiteaApiTestEnabled)
-        {
-            // Skip test with message using xunit.v3 approach
-            return;
-        }
+        Assert.SkipUnless(IsGiteaApiTestEnabled, $"Test skipped because {TestFlagEnvironmentVariable} is not set to '1'");
         
         // Act
         var result = await _client.TestConnectionAsync();
@@ -73,11 +69,7 @@ public class GiteaApiClientTests
     [Fact]
     public async Task GetRepositoriesAsync_ShouldReturnRepositories_WhenApiCallSucceeds()
     {
-        if (!IsGiteaApiTestEnabled)
-        {
-            // Skip test with message using xunit.v3 approach
-            return;
-        }
+        Assert.SkipUnless(IsGiteaApiTestEnabled, $"Test skipped because {TestFlagEnvironmentVariable} is not set to '1'");
         
         // Act
         var result = await _client.GetRepositoriesAsync();
@@ -97,11 +89,7 @@ public class GiteaApiClientTests
     [Fact]
     public async Task GetBranchesAsync_ShouldReturnBranches_WhenApiCallSucceeds()
     {
-        if (!IsGiteaApiTestEnabled)
-        {
-            // Skip test with message using xunit.v3 approach
-            return;
-        }
+        Assert.SkipUnless(IsGiteaApiTestEnabled, $"Test skipped because {TestFlagEnvironmentVariable} is not set to '1'");
         
         // First, get a repository to test with
         var repositories = await _client.GetRepositoriesAsync();
@@ -128,11 +116,7 @@ public class GiteaApiClientTests
     [Fact]
     public async Task GetWorkflowsAsync_ShouldReturnWorkflows_WhenApiCallSucceeds()
     {
-        if (!IsGiteaApiTestEnabled)
-        {
-            // Skip test with message using xunit.v3 approach
-            return;
-        }
+        Assert.SkipUnless(IsGiteaApiTestEnabled, $"Test skipped because {TestFlagEnvironmentVariable} is not set to '1'");
         
         // First, get a repository to test with
         var repositories = await _client.GetRepositoriesAsync();

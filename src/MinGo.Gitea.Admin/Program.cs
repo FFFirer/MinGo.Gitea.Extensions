@@ -37,7 +37,8 @@ builder.Services.AddScoped<MinGo.Gitea.Core.Interfaces.IGiteaApiClient, GiteaApi
     var config = new GiteaConfig
     {
         ServerUrl = "",
-        Token = ""
+        Token = "",
+        Username = ""
     };
     return new GiteaApiClient(httpClient, config);
 });

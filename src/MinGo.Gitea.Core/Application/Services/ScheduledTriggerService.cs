@@ -7,9 +7,9 @@ namespace MinGo.Gitea.Application.Services;
 public class ScheduledTriggerService
 {
     private readonly WorkflowService _workflowService;
-    private readonly GiteaExtensionsDbContext _dbContext;
+    private readonly GiteaExtensionsDbContext? _dbContext;
 
-    public ScheduledTriggerService(WorkflowService workflowService, GiteaExtensionsDbContext dbContext = null)
+    public ScheduledTriggerService(WorkflowService workflowService, GiteaExtensionsDbContext? dbContext = null)
     {
         _workflowService = workflowService;
         _dbContext = dbContext;
@@ -26,7 +26,7 @@ public class ScheduledTriggerService
         return trigger;
     }
 
-    public async Task<ScheduledTrigger> UpdateTriggerAsync(ScheduledTrigger trigger)
+    public async Task<ScheduledTrigger?> UpdateTriggerAsync(ScheduledTrigger trigger)
     {
         if (_dbContext != null)
         {
@@ -71,7 +71,7 @@ public class ScheduledTriggerService
         return Enumerable.Empty<ScheduledTrigger>();
     }
 
-    public async Task<ScheduledTrigger> GetTriggerAsync(int id)
+    public async Task<ScheduledTrigger?> GetTriggerAsync(int id)
     {
         if (_dbContext != null)
         {
@@ -127,17 +127,20 @@ public class ScheduledTriggerService
             Owner = trigger.Owner,
             Repo = trigger.Repo,
             WorkflowId = trigger.WorkflowId,
-            WorkflowName = run?.Name,
+            WorkflowName = run?.Name ?? "",
             Branch = trigger.Branch,
             RunId = run?.Id ?? 0,
-            Status = run?.Status,
-            Conclusion = run?.Conclusion,
+            Status = run?.Status ?? "",
+            Conclusion = run?.Conclusion ?? "",
             CreatedAt = run?.CreatedAt ?? DateTime.UtcNow,
             UpdatedAt = run?.UpdatedAt ?? DateTime.UtcNow,
             TriggerType = "定时触发"
         };
         
-        _dbContext.WorkflowRunHistories.Add(history);
-        await _dbContext.SaveChangesAsync();
+        if (_dbContext != null)
+        {
+            _dbContext.WorkflowRunHistories.Add(history);
+            await _dbContext.SaveChangesAsync();
+        }
     }
 }

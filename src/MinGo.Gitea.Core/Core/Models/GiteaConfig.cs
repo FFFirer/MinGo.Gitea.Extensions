@@ -3,7 +3,7 @@ namespace MinGo.Gitea.Core.Models;
 public class GiteaConfig
 {
     public int Id { get; set; }
-    public string ServerUrl { get; set; }
-    public string Token { get; set; }
-    public string Username { get; set; }
+    public required string ServerUrl { get; set; }
+    public required string Token { get; set; }
+    public required string Username { get; set; }
 }
