@@ -1,4 +1,4 @@
-namespace MinGo.Gitea.Extensions.Core.Models;
+namespace MinGo.GiteaExtensions.Core.Models;
 
 public class GiteaConfig
 {

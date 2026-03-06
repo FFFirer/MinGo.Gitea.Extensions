@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using MinGo.Gitea.Extensions.Application.Services;
-using MinGo.Gitea.Extensions.Core.Models;
-using MinGo.Gitea.Extensions.Infrastructure;
-using MinGo.Gitea.Extensions.Infrastructure.Data;
+using MinGo.GiteaExtensions.Application.Services;
+using MinGo.GiteaExtensions.Core.Models;
+using MinGo.GiteaExtensions.Infrastructure;
+using MinGo.GiteaExtensions.Infrastructure.Data;
 using MinGo.GiteaExtensionsAdmin.Components;
 using Serilog;
 using Vite.AspNetCore;
@@ -30,7 +30,7 @@ builder.Services.AddDbContext<GiteaExtensionsDbContext>(options =>
 builder.Services.AddScoped<GiteaConfigService>();
 
 // 注册 Gitea API 客户端
-builder.Services.AddScoped<MinGo.Gitea.Extensions.Core.Interfaces.IGiteaApiClient, GiteaApiClient>(provider =>
+builder.Services.AddScoped<MinGo.GiteaExtensions.Core.Interfaces.IGiteaApiClient, GiteaApiClient>(provider =>
 {
     var httpClient = provider.GetRequiredService<HttpClient>();
     // 暂时使用默认配置，实际使用时会从数据库读取

@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="MinGo.GiteaExtensions/MinGo.GiteaExtensions.csproj" />
-  <Project Path="MinGo.GiteaExtensionsAdmin/MinGo.GiteaExtensionsAdmin.csproj" />
+  <Project Path="MinGo.Gitea.Extensions/MinGo.Gitea.Extensions.csproj" />
+  <Project Path="MinGo.GiteaExtensionsAdmin/MinGo.Gitea.ExtensionsAdmin.csproj" />
 </Solution>

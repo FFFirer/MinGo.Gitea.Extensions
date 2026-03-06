@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using MinGo.Gitea.Extensions.Core.Models;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using MinGo.GiteaExtensions.Core.Models;
+using Newtonsoft.Json;
 
-namespace MinGo.Gitea.Extensions.Infrastructure.Data;
+namespace MinGo.GiteaExtensions.Infrastructure.Data;
 
 public class GiteaExtensionsDbContext : DbContext
 {
@@ -18,8 +20,19 @@ public class GiteaExtensionsDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         
         // 配置ScheduledTrigger模型
+        var jsonConverter = new ValueConverter<Dictionary<string, string>, string>(
+            v => JsonConvert.SerializeObject(v),
+            v => JsonConvert.DeserializeObject<Dictionary<string, string>>(v ?? "{}")
+        );
+        
         modelBuilder.Entity<ScheduledTrigger>()
             .HasKey(t => t.Id);
+        
+        modelBuilder.Entity<ScheduledTrigger>()
+            .Property(t => t.Inputs)
+            .HasConversion(jsonConverter)
+            .HasColumnType("TEXT")
+            .IsRequired();
         
         // 配置WorkflowRunHistory模型
         modelBuilder.Entity<WorkflowRunHistory>()
