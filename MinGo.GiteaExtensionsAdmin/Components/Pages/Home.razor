@@ -1,7 +1,365 @@
 ﻿@page "/"
+@using MinGo.Gitea.Extensions.Core.Models
+@using MinGo.Gitea.Extensions.Application.Services
+@using MinGo.Gitea.Extensions.Infrastructure
+@inject IHttpClientFactory HttpClientFactory
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Gitea 工作流管理</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">Gitea 工作流管理</h1>
+    
+    <!-- 配置部分 -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">Gitea 配置</h2>
+        <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">服务器地址</label>
+                    <input type="text" @bind="config.ServerUrl" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://gitea.example.com" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">访问令牌</label>
+                    <input type="password" @bind="config.Token" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Gitea API Token" />
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                <input type="text" @bind="config.Username" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Gitea 用户名" />
+            </div>
+            <button @onclick="TestConnection" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                测试连接
+            </button>
+            @if (connectionStatus != null)
+            {
+                <div class="mt-2 p-2 rounded-md @(connectionStatus == "成功" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")">
+                    连接状态: @connectionStatus
+                </div>
+            }
+        </div>
+    </div>
+    
+    <!-- 仓库选择部分 -->
+    @if (repositories.Any())
+    {
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">仓库选择</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">选择仓库</label>
+                    <select @bind="selectedRepository" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- 选择仓库 --</option>
+                        @foreach (var repo in repositories)
+                        {
+                            <option value="@repo.FullName">@repo.FullName</option>
+                        }
+                    </select>
+                    <button @onclick="OnSelectedRepositoryChanged" class="mt-2 bg-gray-500 hover:bg-gray-600 text-white font-medium py-1 px-3 rounded-md transition-colors text-sm">
+                        加载分支
+                    </button>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">选择分支</label>
+                    <select @bind="selectedBranch" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- 选择分支 --</option>
+                        @foreach (var branch in branches)
+                        {
+                            <option value="@branch.Name">@branch.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    }
+    
+    <!-- 工作流部分 -->
+    @if (workflows.Any())
+    {
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">工作流管理</h2>
+            <div class="space-y-4">
+                @foreach (var workflow in workflows)
+                {
+                    <div class="border border-gray-200 rounded-md p-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-medium">@workflow.Name</h3>
+                            <button @onclick="() => TriggerWorkflow(workflow.Id.ToString())" class="bg-green-500 hover:bg-green-600 text-white font-medium py-1 px-3 rounded-md transition-colors text-sm">
+                                触发
+                            </button>
+                        </div>
+                        <div class="text-sm text-gray-500 mt-1">路径: @workflow.Path</div>
+                        <div class="text-sm text-gray-500">状态: @workflow.State</div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    
+    <!-- 工作流执行历史 -->
+    @if (workflowRuns.Any())
+    {
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">执行历史</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">工作流</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分支</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach (var run in workflowRuns)
+                        {
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">@run.Name</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full @(run.Status == "completed" ? (run.Conclusion == "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800") : "bg-yellow-100 text-yellow-800")">
+                                        @run.Status
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">@run.Branch</td>
+                                <td class="px-6 py-4 whitespace-nowrap">@run.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <button @onclick="() => ViewRunDetails(run.Id)" class="text-blue-600 hover:text-blue-900 text-sm">
+                                        查看详情
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    
+    <!-- 定时触发配置 -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">定时触发配置</h2>
+        <button @onclick="ShowAddTriggerForm" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors mb-4">
+            添加定时触发
+        </button>
+        
+        @if (showAddTriggerForm)
+        {
+            <div class="border border-gray-200 rounded-md p-4 mb-4">
+                <h3 class="font-medium mb-3">添加定时触发</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">名称</label>
+                        <input type="text" @bind="newTrigger.Name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="触发名称" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cron表达式</label>
+                        <input type="text" @bind="newTrigger.CronExpression" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0 * * * *" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">工作流ID</label>
+                        <input type="text" @bind="newTrigger.WorkflowId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="工作流ID" />
+                    </div>
+                    <div class="flex space-x-2">
+                        <button @onclick="AddTrigger" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                            保存
+                        </button>
+                        <button @onclick="CancelAddTrigger" class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                            取消
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+        
+        @if (scheduledTriggers.Any())
+        {
+            <div class="space-y-4">
+                @foreach (var trigger in scheduledTriggers)
+                {
+                    <div class="border border-gray-200 rounded-md p-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-medium">@trigger.Name</h3>
+                            <div class="flex space-x-2">
+                                <button @onclick="() => ToggleTrigger(trigger.Id)" class="text-sm px-2 py-1 rounded @(trigger.IsEnabled ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800")">
+                                    @(trigger.IsEnabled ? "启用" : "禁用")
+                                </button>
+                                <button @onclick="() => DeleteTrigger(trigger.Id)" class="text-sm text-red-600 hover:text-red-900">
+                                    删除
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-500 mt-1">Cron: @trigger.CronExpression</div>
+                        <div class="text-sm text-gray-500">工作流: @trigger.WorkflowId</div>
+                        <div class="text-sm text-gray-500">分支: @trigger.Branch</div>
+                        @if (trigger.LastRunAt.HasValue)
+                        {
+                            <div class="text-sm text-gray-500">上次运行: @trigger.LastRunAt.Value.ToString("yyyy-MM-dd HH:mm:ss")</div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
 
-Welcome to your new app.
+@code {
+    private GiteaConfig config = new GiteaConfig();
+    private string connectionStatus;
+    private List<Repository> repositories = new List<Repository>();
+    private List<Branch> branches = new List<Branch>();
+    private List<Workflow> workflows = new List<Workflow>();
+    private List<WorkflowRun> workflowRuns = new List<WorkflowRun>();
+    private List<ScheduledTrigger> scheduledTriggers = new List<ScheduledTrigger>();
+    private string selectedRepository;
+    private string selectedBranch;
+    private bool showAddTriggerForm;
+    private ScheduledTrigger newTrigger = new ScheduledTrigger { Inputs = new Dictionary<string, string>(), IsEnabled = true };
+    private WorkflowService workflowService;
+    private ScheduledTriggerService scheduledTriggerService;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 延迟初始化服务，直到用户输入配置并测试连接
+    }
+
+    private async Task TestConnection()
+    {
+        var httpClient = HttpClientFactory.CreateClient();
+        var giteaApiClient = new GiteaApiClient(httpClient, config);
+        var success = await giteaApiClient.TestConnectionAsync();
+        connectionStatus = success ? "成功" : "失败";
+        
+        if (success)
+        {
+            // 重新初始化服务
+            workflowService = new WorkflowService(giteaApiClient);
+            scheduledTriggerService = new ScheduledTriggerService(workflowService);
+            await LoadRepositories();
+        }
+    }
+
+    private async Task LoadRepositories()
+    {
+        if (workflowService != null)
+        {
+            repositories = (await workflowService.GetRepositoriesAsync()).ToList();
+        }
+    }
+
+    private async Task LoadBranches()
+    {
+        if (workflowService != null && !string.IsNullOrEmpty(selectedRepository))
+        {
+            var parts = selectedRepository.Split('/');
+            if (parts.Length == 2)
+            {
+                var owner = parts[0];
+                var repo = parts[1];
+                branches = (await workflowService.GetBranchesAsync(owner, repo)).ToList();
+                workflows = (await workflowService.GetWorkflowsAsync(owner, repo)).ToList();
+                workflowRuns = (await workflowService.GetWorkflowRunsAsync(owner, repo)).ToList();
+            }
+        }
+    }
+
+    private async Task TriggerWorkflow(string workflowId)
+    {
+        if (workflowService != null && !string.IsNullOrEmpty(selectedRepository) && !string.IsNullOrEmpty(selectedBranch))
+        {
+            var parts = selectedRepository.Split('/');
+            if (parts.Length == 2)
+            {
+                var owner = parts[0];
+                var repo = parts[1];
+                await workflowService.TriggerWorkflowAsync(owner, repo, workflowId, selectedBranch);
+                await LoadBranches(); // 刷新执行历史
+            }
+        }
+    }
+
+    private void ViewRunDetails(int runId)
+    {
+        // 实现查看详情功能
+    }
+
+    private void ShowAddTriggerForm()
+    {
+        showAddTriggerForm = true;
+        newTrigger = new ScheduledTrigger { Inputs = new Dictionary<string, string>(), IsEnabled = true };
+    }
+
+    private async Task AddTrigger()
+    {
+        if (!string.IsNullOrEmpty(selectedRepository))
+        {
+            var parts = selectedRepository.Split('/');
+            if (parts.Length == 2)
+            {
+                newTrigger.Owner = parts[0];
+                newTrigger.Repo = parts[1];
+                newTrigger.Branch = selectedBranch;
+                await scheduledTriggerService.CreateTriggerAsync(newTrigger);
+                await LoadScheduledTriggers();
+                showAddTriggerForm = false;
+            }
+        }
+    }
+
+    private void CancelAddTrigger()
+    {
+        showAddTriggerForm = false;
+    }
+
+    private async Task LoadScheduledTriggers()
+    {
+        if (scheduledTriggerService != null)
+        {
+            scheduledTriggers = (await scheduledTriggerService.GetTriggersAsync()).ToList();
+        }
+    }
+
+    private async Task ToggleTrigger(int id)
+    {
+        if (scheduledTriggerService != null)
+        {
+            var trigger = scheduledTriggers.FirstOrDefault(t => t.Id == id);
+            if (trigger != null)
+            {
+                trigger.IsEnabled = !trigger.IsEnabled;
+                await scheduledTriggerService.UpdateTriggerAsync(trigger);
+            }
+        }
+    }
+
+    private async Task DeleteTrigger(int id)
+    {
+        if (scheduledTriggerService != null)
+        {
+            await scheduledTriggerService.DeleteTriggerAsync(id);
+            await LoadScheduledTriggers();
+        }
+    }
+
+    // 监听仓库和分支变化
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+    }
+
+    // 当仓库选择变化时加载分支和工作流
+    private async Task OnSelectedRepositoryChanged()
+    {
+        selectedBranch = string.Empty;
+        branches.Clear();
+        workflows.Clear();
+        workflowRuns.Clear();
+        await LoadBranches();
+    }
+
+    // 当分支选择变化时刷新工作流
+    private async Task OnSelectedBranchChanged()
+    {
+        await LoadBranches();
+    }
+}

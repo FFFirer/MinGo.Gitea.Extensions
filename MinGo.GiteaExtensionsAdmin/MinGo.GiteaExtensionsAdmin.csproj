@@ -11,4 +11,8 @@
     <PackageReference Include="Serilog.AspNetCore" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\MinGo.Gitea.Extensions\MinGo.Gitea.Extensions.csproj" />
+  </ItemGroup>
+
 </Project>
