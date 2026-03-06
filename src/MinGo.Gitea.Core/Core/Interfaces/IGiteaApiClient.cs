@@ -1,6 +1,6 @@
-using MinGo.GiteaExtensions.Core.Models;
+using MinGo.Gitea.Core.Models;
 
-namespace MinGo.GiteaExtensions.Core.Interfaces;
+namespace MinGo.Gitea.Core.Interfaces;
 
 public interface IGiteaApiClient
 {

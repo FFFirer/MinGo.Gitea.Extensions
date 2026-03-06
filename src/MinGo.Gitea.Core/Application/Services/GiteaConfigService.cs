@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using MinGo.GiteaExtensions.Core.Models;
-using MinGo.GiteaExtensions.Infrastructure.Data;
+using MinGo.Gitea.Core.Models;
+using MinGo.Gitea.Infrastructure.Data;
 
-namespace MinGo.GiteaExtensions.Application.Services;
+namespace MinGo.Gitea.Application.Services;
 
 /// <summary>
 /// Gitea配置服务，用于管理Gitea API配置的保存和读取

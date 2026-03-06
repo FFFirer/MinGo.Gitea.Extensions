@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using MinGo.GiteaExtensions.Core.Models;
+using MinGo.Gitea.Core.Models;
 using Newtonsoft.Json;
 
-namespace MinGo.GiteaExtensions.Infrastructure.Data;
+namespace MinGo.Gitea.Infrastructure.Data;
 
 public class GiteaExtensionsDbContext : DbContext
 {

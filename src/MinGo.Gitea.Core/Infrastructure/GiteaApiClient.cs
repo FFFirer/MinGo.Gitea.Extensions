@@ -1,8 +1,8 @@
-using MinGo.GiteaExtensions.Core.Interfaces;
-using MinGo.GiteaExtensions.Core.Models;
+using MinGo.Gitea.Core.Interfaces;
+using MinGo.Gitea.Core.Models;
 using Newtonsoft.Json;
 
-namespace MinGo.GiteaExtensions.Infrastructure;
+namespace MinGo.Gitea.Infrastructure;
 
 public class GiteaApiClient : IGiteaApiClient
 {

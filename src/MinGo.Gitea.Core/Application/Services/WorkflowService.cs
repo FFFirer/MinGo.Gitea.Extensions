@@ -1,8 +1,8 @@
-using MinGo.GiteaExtensions.Core.Interfaces;
-using MinGo.GiteaExtensions.Core.Models;
-using MinGo.GiteaExtensions.Infrastructure.Data;
+using MinGo.Gitea.Core.Interfaces;
+using MinGo.Gitea.Core.Models;
+using MinGo.Gitea.Infrastructure.Data;
 
-namespace MinGo.GiteaExtensions.Application.Services;
+namespace MinGo.Gitea.Application.Services;
 
 public class WorkflowService
 {

@@ -1,8 +1,8 @@
-using MinGo.GiteaExtensions.Core.Models;
-using MinGo.GiteaExtensions.Infrastructure.Data;
+using MinGo.Gitea.Core.Models;
+using MinGo.Gitea.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace MinGo.GiteaExtensions.Application.Services;
+namespace MinGo.Gitea.Application.Services;
 
 public class ScheduledTriggerService
 {

@@ -1,4 +1,4 @@
-namespace MinGo.GiteaExtensions.Core.Models;
+namespace MinGo.Gitea.Core.Models;
 
 public class WorkflowRunHistory
 {
