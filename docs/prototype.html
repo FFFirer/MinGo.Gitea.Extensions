@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflows - 工作流执行</title>
+    <style>
+        /* 设计规范变量 */
+        :root {
+            --bg-light: #F5F7FA;
+            --surface-white: #FFFFFF;
+            --primary: #0052CC;
+            --primary-dark: #0747A6;
+            --text-primary: #172B4D;
+            --text-secondary: #5E6C84;
+            --text-disabled: #A5ADBA;
+            --elevation-1: 0 2px 4px 0 rgba(0,0,0,0.05);
+            --elevation-2: 0 6px 12px 0 rgba(0,0,0,0.08);
+            --elevation-3: 0 16px 24px 0 rgba(0,0,0,0.12);
+            --spacing-unit: 4px;
+            --border-radius-sm: 4px;
+            --border-radius-md: 6px;
+            --border-radius-lg: 8px;
+        }
+
+        /* 全局样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            background-color: var(--surface-white);
+            box-shadow: var(--elevation-1);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .navbar-nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-item {
+            list-style: none;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 400;
+            padding: 8px 12px;
+            border-radius: var(--border-radius-md);
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover {
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* 页面标题 */
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+        }
+
+        /* 卡片 */
+        .card {
+            background-color: var(--surface-white);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--elevation-1);
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--elevation-2);
+            transform: translateY(-2px);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        /* 表单 */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #DFE1E6;
+            border-radius: var(--border-radius-md);
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px #DEEBFF;
+        }
+
+        .form-control::placeholder {
+            color: #7A869A;
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--border-radius-md);
+            font-size: 14px;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: var(--elevation-1);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            box-shadow: var(--elevation-2);
+        }
+
+        .btn-primary:active {
+            box-shadow: inset 0 1px 3px 0 rgba(0,0,0,0.1);
+        }
+
+        .btn-secondary {
+            background-color: var(--surface-white);
+            color: var(--text-primary);
+            border: 1px solid #DFE1E6;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-light);
+            border-color: #C1C7D0;
+        }
+
+        .btn-secondary:active {
+            box-shadow: inset 0 1px 3px 0 rgba(0,0,0,0.1);
+        }
+
+        .btn-disabled {
+            background-color: #F4F5F7;
+            color: var(--text-disabled);
+            cursor: not-allowed;
+        }
+
+        /* 消息提示 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--elevation-3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast-success {
+            background-color: #E6F7EF;
+            color: #36B37E;
+        }
+
+        .toast-warning {
+            background-color: #FFF6E0;
+            color: #FFAB00;
+        }
+
+        .toast-error {
+            background-color: #FFECE8;
+            color: #FF5630;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* 页面内容 */
+        .page-content {
+            display: none;
+        }
+
+        .page-content.active {
+            display: block;
+        }
+
+        /* 步骤指示器 */
+        .steps {
+            display: flex;
+            margin-bottom: 24px;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #DFE1E6;
+            z-index: 1;
+        }
+
+        .step:first-child::before {
+            left: 50%;
+        }
+
+        .step:last-child::before {
+            right: 50%;
+        }
+
+        .step-number {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #DFE1E6;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+            margin: 0 auto 8px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step.active .step-number {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .step.completed .step-number {
+            background-color: #36B37E;
+            color: white;
+        }
+
+        .step-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .step.active .step-label {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* 工作流列表 */
+        .workflow-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .workflow-card {
+            background-color: var(--surface-white);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--elevation-1);
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .workflow-card:hover {
+            box-shadow: var(--elevation-2);
+            transform: translateY(-2px);
+        }
+
+        .workflow-card.active {
+            border: 2px solid var(--primary);
+        }
+
+        .workflow-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .workflow-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .workflow-branch {
+            font-size: 12px;
+            color: var(--text-secondary);
+            background-color: var(--bg-light);
+            padding: 4px 8px;
+            border-radius: var(--border-radius-sm);
+            display: inline-block;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .navbar-nav {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .container {
+                padding: 16px;
+            }
+
+            .workflow-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-brand">Workflows</div>
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a href="#" class="nav-link active" data-page="home">首页</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" data-page="trigger-workflow">触发工作流</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" data-page="history">执行历史</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" data-page="settings">设置</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 首页 -->
+        <div class="page-content active" id="home">
+            <h1 class="page-title">工作流执行概览</h1>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div class="card">
+                    <h2 class="card-title">总执行次数</h2>
+                    <div style="font-size: 32px; font-weight: 600; color: var(--text-primary); margin-top: 8px;">128</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">本月执行 32 次</div>
+                </div>
+                <div class="card">
+                    <h2 class="card-title">成功率</h2>
+                    <div style="font-size: 32px; font-weight: 600; color: #36B37E; margin-top: 8px;">92%</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">118/128 成功</div>
+                </div>
+                <div class="card">
+                    <h2 class="card-title">平均执行时间</h2>
+                    <div style="font-size: 32px; font-weight: 600; color: var(--text-primary); margin-top: 8px;">2m 15s</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">最近 10 次执行</div>
+                </div>
+                <div class="card">
+                    <h2 class="card-title">运行中</h2>
+                    <div style="font-size: 32px; font-weight: 600; color: #FFAB00; margin-top: 8px;">3</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">当前正在执行</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">最近执行记录</h2>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #EBECF0;">
+                                <th style="padding: 12px; text-align: left; font-size: 14px; font-weight: 600; color: var(--text-primary);">工作流</th>
+                                <th style="padding: 12px; text-align: left; font-size: 14px; font-weight: 600; color: var(--text-primary);">仓库</th>
+                                <th style="padding: 12px; text-align: left; font-size: 14px; font-weight: 600; color: var(--text-primary);">状态</th>
+                                <th style="padding: 12px; text-align: left; font-size: 14px; font-weight: 600; color: var(--text-primary);">开始时间</th>
+                                <th style="padding: 12px; text-align: left; font-size: 14px; font-weight: 600; color: var(--text-primary);">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #EBECF0; transition: background-color 0.2s ease;">
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-primary);">CI/CD Pipeline</td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">minio/minio</td>
+                                <td style="padding: 12px;">
+                                    <span style="padding: 4px 8px; border-radius: var(--border-radius-sm); background-color: #E6F7EF; color: #36B37E; font-size: 12px;">成功</span>
+                                </td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">2026-03-06 11:30:00</td>
+                                <td style="padding: 12px;">
+                                    <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">查看</button>
+                                </td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #EBECF0; transition: background-color 0.2s ease;">
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-primary);">Code Quality</td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">gitea/gitea</td>
+                                <td style="padding: 12px;">
+                                    <span style="padding: 4px 8px; border-radius: var(--border-radius-sm); background-color: #FFF6E0; color: #FFAB00; font-size: 12px;">运行中</span>
+                                </td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">2026-03-06 10:15:00</td>
+                                <td style="padding: 12px;">
+                                    <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">查看</button>
+                                </td>
+                            </tr>
+                            <tr style="transition: background-color 0.2s ease;">
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-primary);">Security Scan</td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">microsoft/vscode</td>
+                                <td style="padding: 12px;">
+                                    <span style="padding: 4px 8px; border-radius: var(--border-radius-sm); background-color: #FFECE8; color: #FF5630; font-size: 12px;">失败</span>
+                                </td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">2026-03-06 09:45:00</td>
+                                <td style="padding: 12px;">
+                                    <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">查看</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 触发工作流页面 -->
+        <div class="page-content" id="trigger-workflow">
+            <h1 class="page-title">手动触发工作流执行</h1>
+            
+            <div class="card">
+                <h2 class="card-title">执行步骤</h2>
+                <div class="steps">
+                    <div class="step active">
+                        <div class="step-number">1</div>
+                        <div class="step-label">选择仓库</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-label">选择工作流</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-label">选择分支</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-label">触发工作流</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">选择仓库</h2>
+                <div class="form-group">
+                    <label class="form-label" for="repo-select">仓库</label>
+                    <select class="form-control" id="repo-select">
+                        <option value="">请选择仓库</option>
+                        <option value="repo1">minio/minio</option>
+                        <option value="repo2">gitea/gitea</option>
+                        <option value="repo3">microsoft/vscode</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="next-step-1">下一步</button>
+            </div>
+        </div>
+
+        <!-- 工作流页面 -->
+        <div class="page-content" id="workflow">
+            <h1 class="page-title">选择工作流</h1>
+            
+            <div class="card">
+                <h2 class="card-title">执行步骤</h2>
+                <div class="steps">
+                    <div class="step completed">
+                        <div class="step-number">1</div>
+                        <div class="step-label">选择仓库</div>
+                    </div>
+                    <div class="step active">
+                        <div class="step-number">2</div>
+                        <div class="step-label">选择工作流</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-label">选择分支</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-label">触发工作流</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">工作流列表</h2>
+                <div class="workflow-list">
+                    <div class="workflow-card" data-workflow="workflow1">
+                        <div class="workflow-name">CI/CD Pipeline</div>
+                        <div class="workflow-description">持续集成和部署流水线</div>
+                        <div class="workflow-branch">main</div>
+                    </div>
+                    <div class="workflow-card" data-workflow="workflow2">
+                        <div class="workflow-name">Code Quality</div>
+                        <div class="workflow-description">代码质量检查</div>
+                        <div class="workflow-branch">main</div>
+                    </div>
+                    <div class="workflow-card" data-workflow="workflow3">
+                        <div class="workflow-name">Security Scan</div>
+                        <div class="workflow-description">安全扫描</div>
+                        <div class="workflow-branch">main</div>
+                    </div>
+                </div>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-secondary" id="prev-step-2">上一步</button>
+                    <button class="btn btn-primary" id="next-step-2" disabled>下一步</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分支选择页面 -->
+        <div class="page-content" id="branch">
+            <h1 class="page-title">选择分支</h1>
+            
+            <div class="card">
+                <h2 class="card-title">执行步骤</h2>
+                <div class="steps">
+                    <div class="step completed">
+                        <div class="step-number">1</div>
+                        <div class="step-label">选择仓库</div>
+                    </div>
+                    <div class="step completed">
+                        <div class="step-number">2</div>
+                        <div class="step-label">选择工作流</div>
+                    </div>
+                    <div class="step active">
+                        <div class="step-number">3</div>
+                        <div class="step-label">选择分支</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-label">触发工作流</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">分支列表</h2>
+                <div class="form-group">
+                    <label class="form-label" for="branch-select">分支</label>
+                    <select class="form-control" id="branch-select">
+                        <option value="">请选择分支</option>
+                        <option value="main">main</option>
+                        <option value="develop">develop</option>
+                        <option value="feature-branch">feature-branch</option>
+                    </select>
+                </div>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-secondary" id="prev-step-3">上一步</button>
+                    <button class="btn btn-primary" id="next-step-3" disabled>下一步</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 确认触发页面 -->
+        <div class="page-content" id="confirm-trigger-page">
+            <h1 class="page-title">触发工作流</h1>
+            
+            <div class="card">
+                <h2 class="card-title">执行步骤</h2>
+                <div class="steps">
+                    <div class="step completed">
+                        <div class="step-number">1</div>
+                        <div class="step-label">选择仓库</div>
+                    </div>
+                    <div class="step completed">
+                        <div class="step-number">2</div>
+                        <div class="step-label">选择工作流</div>
+                    </div>
+                    <div class="step completed">
+                        <div class="step-number">3</div>
+                        <div class="step-label">选择分支</div>
+                    </div>
+                    <div class="step active">
+                        <div class="step-number">4</div>
+                        <div class="step-label">触发工作流</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">执行信息</h2>
+                <div class="form-group">
+                    <label class="form-label">仓库</label>
+                    <div id="selected-repo" class="form-control" style="background-color: var(--bg-light); cursor: default;">minio/minio</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">工作流</label>
+                    <div id="selected-workflow" class="form-control" style="background-color: var(--bg-light); cursor: default;">CI/CD Pipeline</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">分支</label>
+                    <div id="selected-branch" class="form-control" style="background-color: var(--bg-light); cursor: default;">main</div>
+                </div>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-secondary" id="prev-step-4">上一步</button>
+                    <button class="btn btn-primary" id="confirm-trigger">确认触发</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 工作流详情页面 -->
+        <div class="page-content" id="workflow-detail">
+            <h1 class="page-title">工作流执行详情</h1>
+            
+            <div class="card">
+                <h2 class="card-title">执行信息</h2>
+                <div class="form-group">
+                    <label class="form-label">工作流</label>
+                    <div class="form-control" style="background-color: var(--bg-light); cursor: default;">CI/CD Pipeline</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">仓库</label>
+                    <div class="form-control" style="background-color: var(--bg-light); cursor: default;">minio/minio</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">分支</label>
+                    <div class="form-control" style="background-color: var(--bg-light); cursor: default;">main</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">执行状态</label>
+                    <div class="form-control" style="background-color: #E6F7EF; color: #36B37E; cursor: default;">运行中</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">开始时间</label>
+                    <div class="form-control" style="background-color: var(--bg-light); cursor: default;">2026-03-06 12:00:00</div>
+                </div>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-secondary" id="back-to-history">返回历史</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史页面 -->
+        <div class="page-content" id="history">
+            <h1 class="page-title">执行历史</h1>
+            
+            <div class="card">
+                <h2 class="card-title">最近执行记录</h2>
+                <div class="form-group">
+                    <label class="form-label" for="history-filter">过滤</label>
+                    <input type="text" class="form-control" id="history-filter" placeholder="输入关键词搜索">
+                </div>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-primary">刷新</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">执行记录列表</h2>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #EBECF0;">
+                                <th style="padding: 12px; text-align: left; font-size: 14px; font-weight: 600; color: var(--text-primary);">工作流</th>
+                                <th style="padding: 12px; text-align: left; font-size: 14px; font-weight: 600; color: var(--text-primary);">仓库</th>
+                                <th style="padding: 12px; text-align: left; font-size: 14px; font-weight: 600; color: var(--text-primary);">分支</th>
+                                <th style="padding: 12px; text-align: left; font-size: 14px; font-weight: 600; color: var(--text-primary);">状态</th>
+                                <th style="padding: 12px; text-align: left; font-size: 14px; font-weight: 600; color: var(--text-primary);">开始时间</th>
+                                <th style="padding: 12px; text-align: left; font-size: 14px; font-weight: 600; color: var(--text-primary);">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #EBECF0; transition: background-color 0.2s ease;">
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-primary);">CI/CD Pipeline</td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">minio/minio</td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">main</td>
+                                <td style="padding: 12px;">
+                                    <span style="padding: 4px 8px; border-radius: var(--border-radius-sm); background-color: #E6F7EF; color: #36B37E; font-size: 12px;">成功</span>
+                                </td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">2026-03-06 11:30:00</td>
+                                <td style="padding: 12px;">
+                                    <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">查看</button>
+                                </td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #EBECF0; transition: background-color 0.2s ease;">
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-primary);">Code Quality</td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">gitea/gitea</td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">develop</td>
+                                <td style="padding: 12px;">
+                                    <span style="padding: 4px 8px; border-radius: var(--border-radius-sm); background-color: #FFF6E0; color: #FFAB00; font-size: 12px;">运行中</span>
+                                </td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">2026-03-06 10:15:00</td>
+                                <td style="padding: 12px;">
+                                    <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">查看</button>
+                                </td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #EBECF0; transition: background-color 0.2s ease;">
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-primary);">Security Scan</td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">microsoft/vscode</td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">main</td>
+                                <td style="padding: 12px;">
+                                    <span style="padding: 4px 8px; border-radius: var(--border-radius-sm); background-color: #FFECE8; color: #FF5630; font-size: 12px;">失败</span>
+                                </td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">2026-03-06 09:45:00</td>
+                                <td style="padding: 12px;">
+                                    <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">查看</button>
+                                </td>
+                            </tr>
+                            <tr style="transition: background-color 0.2s ease;">
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-primary);">CI/CD Pipeline</td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">minio/minio</td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">feature-branch</td>
+                                <td style="padding: 12px;">
+                                    <span style="padding: 4px 8px; border-radius: var(--border-radius-sm); background-color: #E6F7EF; color: #36B37E; font-size: 12px;">成功</span>
+                                </td>
+                                <td style="padding: 12px; font-size: 14px; color: var(--text-secondary);">2026-03-05 16:20:00</td>
+                                <td style="padding: 12px;">
+                                    <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">查看</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设置页面 -->
+        <div class="page-content" id="settings">
+            <h1 class="page-title">设置</h1>
+            
+            <div class="card">
+                <h2 class="card-title">Gitea API 配置</h2>
+                <div class="form-group">
+                    <label class="form-label" for="gitea-url">Gitea URL</label>
+                    <input type="text" class="form-control" id="gitea-url" placeholder="https://gitea.example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gitea-token">API Token</label>
+                    <input type="password" class="form-control" id="gitea-token" placeholder="输入API Token">
+                </div>
+                <button class="btn btn-primary" id="save-settings">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面切换功能
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const pageContents = document.querySelectorAll('.page-content');
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const page = this.getAttribute('data-page');
+                    
+                    // 更新导航链接状态
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 更新页面内容
+                    pageContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === page) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            // 触发工作流菜单项点击事件
+            navLinks.forEach(link => {
+                if (link.getAttribute('data-page') === 'trigger-workflow') {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        // 显示触发工作流页面
+                        pageContents.forEach(content => {
+                            content.classList.remove('active');
+                            if (content.id === 'trigger-workflow') {
+                                content.classList.add('active');
+                            }
+                        });
+                        // 更新导航链接状态
+                        navLinks.forEach(l => l.classList.remove('active'));
+                        this.classList.add('active');
+                    });
+                }
+            });
+
+            // 步骤1：选择仓库
+            const nextStep1 = document.getElementById('next-step-1');
+            if (nextStep1) {
+                nextStep1.addEventListener('click', function() {
+                    const repoSelect = document.getElementById('repo-select');
+                    if (repoSelect.value) {
+                        // 显示工作流页面
+                        pageContents.forEach(content => {
+                            content.classList.remove('active');
+                            if (content.id === 'workflow') {
+                                content.classList.add('active');
+                            }
+                        });
+                        // 显示成功提示
+                        showToast('成功选择仓库', 'success');
+                    } else {
+                        showToast('请选择仓库', 'error');
+                    }
+                });
+            }
+
+            // 步骤2：选择工作流
+            const workflowCards = document.querySelectorAll('.workflow-card');
+            const nextStep2 = document.getElementById('next-step-2');
+            const prevStep2 = document.getElementById('prev-step-2');
+
+            workflowCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    workflowCards.forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    nextStep2.disabled = false;
+                });
+            });
+
+            if (nextStep2) {
+                nextStep2.addEventListener('click', function() {
+                    const activeCard = document.querySelector('.workflow-card.active');
+                    if (activeCard) {
+                        // 显示成功提示
+                        showToast('成功选择工作流', 'success');
+                        // 跳转到分支页面
+                        pageContents.forEach(content => {
+                            content.classList.remove('active');
+                            if (content.id === 'branch') {
+                                content.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }
+
+            if (prevStep2) {
+                prevStep2.addEventListener('click', function() {
+                    // 返回到触发工作流页面
+                    pageContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === 'trigger-workflow') {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            }
+
+            // 分支选择页面逻辑
+            const branchSelect = document.getElementById('branch-select');
+            const nextStep3 = document.getElementById('next-step-3');
+            const prevStep3 = document.getElementById('prev-step-3');
+
+            if (branchSelect) {
+                branchSelect.addEventListener('change', function() {
+                    nextStep3.disabled = !this.value;
+                });
+            }
+
+            if (nextStep3) {
+                nextStep3.addEventListener('click', function() {
+                    if (branchSelect.value) {
+                        showToast('成功选择分支', 'success');
+                        // 跳转到确认触发页面
+                        pageContents.forEach(content => {
+                            content.classList.remove('active');
+                            if (content.id === 'confirm-trigger-page') {
+                                content.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }
+
+            if (prevStep3) {
+                prevStep3.addEventListener('click', function() {
+                    // 返回到工作流页面
+                    pageContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === 'workflow') {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            }
+
+            // 确认触发页面逻辑
+            const confirmTrigger = document.getElementById('confirm-trigger');
+            const prevStep4 = document.getElementById('prev-step-4');
+            const backToHistory = document.getElementById('back-to-history');
+
+            if (confirmTrigger) {
+                confirmTrigger.addEventListener('click', function() {
+                    showToast('工作流触发成功', 'success');
+                    // 跳转到工作流详情页面
+                    pageContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === 'workflow-detail') {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            }
+
+            if (prevStep4) {
+                prevStep4.addEventListener('click', function() {
+                    // 返回到分支页面
+                    pageContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === 'branch') {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            }
+
+            if (backToHistory) {
+                backToHistory.addEventListener('click', function() {
+                    // 返回到历史页面
+                    pageContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === 'history') {
+                            content.classList.add('active');
+                        }
+                    });
+                    // 更新导航链接状态
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('data-page') === 'history') {
+                            link.classList.add('active');
+                        }
+                    });
+                });
+            }
+
+            // 执行历史页面和首页的查看按钮
+            const viewButtons = document.querySelectorAll('.btn-secondary');
+            viewButtons.forEach(button => {
+                if (button.textContent.trim() === '查看') {
+                    button.addEventListener('click', function() {
+                        // 跳转到工作流详情页面
+                        pageContents.forEach(content => {
+                            content.classList.remove('active');
+                            if (content.id === 'workflow-detail') {
+                                content.classList.add('active');
+                            }
+                        });
+                    });
+                }
+            });
+
+            // 保存设置
+            const saveSettings = document.getElementById('save-settings');
+            if (saveSettings) {
+                saveSettings.addEventListener('click', function() {
+                    const giteaUrl = document.getElementById('gitea-url').value;
+                    const giteaToken = document.getElementById('gitea-token').value;
+                    
+                    if (giteaUrl && giteaToken) {
+                        showToast('设置保存成功', 'success');
+                    } else {
+                        showToast('请填写完整的配置信息', 'error');
+                    }
+                });
+            }
+        });
+
+        // 更新步骤指示器
+        function updateSteps(activeStep) {
+            debugger
+            const steps = document.querySelectorAll('.step');
+            steps.forEach((step, index) => {
+                const stepNum = index + 1;
+                if (stepNum < activeStep) {
+                    step.classList.add('completed');
+                    step.classList.remove('active');
+                } else if (stepNum === activeStep) {
+                    step.classList.add('active');
+                    step.classList.remove('completed');
+                } else {
+                    step.classList.remove('active');
+                    step.classList.remove('completed');
+                }
+            });
+        }
+
+        // 显示消息提示
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
