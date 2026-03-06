@@ -1,0 +1,30 @@
+<div class="flex mb-6">
+    @foreach (var step in StepItems)
+    {
+        var stepIndex = StepItems.IndexOf(step) + 1;
+        var isActive = stepIndex == CurrentStep;
+        var isCompleted = stepIndex < CurrentStep;
+        
+        <div class="flex-1 text-center relative">
+            <div class="step-number w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium relative z-10 @(isActive ? "bg-blue-600 text-white" : isCompleted ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500")">
+                @stepIndex
+            </div>
+            <div class="step-label text-xs mt-2 @(isActive ? "text-gray-800 font-medium" : "text-gray-500")">@step</div>
+            
+            @if (stepIndex < StepItems.Count)
+            {
+                <div class="absolute top-3 left-0 right-0 h-0.5 bg-gray-200 -z-10">
+                    <div class="h-full bg-blue-600 transition-all duration-300" style="width: @(isCompleted ? "100%" : isActive ? "0%" : "0%")"></div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int CurrentStep { get; set; } = 1;
+
+    [Parameter]
+    public List<string> StepItems { get; set; } = new List<string> { "选择仓库", "选择工作流", "选择分支", "触发工作流" };
+}

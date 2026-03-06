@@ -1,0 +1,42 @@
+<span class="px-2 py-1 rounded text-xs @StatusClass">@StatusText</span>
+
+@code {
+    [Parameter]
+    public string? Status { get; set; }
+
+    private string StatusClass
+    {
+        get
+        {
+            switch (Status?.ToLower())
+            {
+                case "success":
+                    return "bg-green-100 text-green-700";
+                case "running":
+                    return "bg-yellow-100 text-yellow-700";
+                case "failed":
+                    return "bg-red-100 text-red-700";
+                default:
+                    return "bg-gray-100 text-gray-700";
+            }
+        }
+    }
+
+    private string StatusText
+    {
+        get
+        {
+            switch (Status?.ToLower())
+            {
+                case "success":
+                    return "成功";
+                case "running":
+                    return "运行中";
+                case "failed":
+                    return "失败";
+                default:
+                    return Status ?? "";
+            }
+        }
+    }
+}

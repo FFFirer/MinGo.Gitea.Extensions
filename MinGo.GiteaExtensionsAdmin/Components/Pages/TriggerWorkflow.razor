@@ -1,0 +1,57 @@
+@page "/trigger-workflow"
+
+<h1 class="text-2xl font-semibold text-gray-800 mb-6">手动触发工作流执行</h1>
+
+<Card Title="执行步骤">
+    <Steps CurrentStep="1" />
+</Card>
+
+<Card Title="选择仓库">
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-800 mb-2" for="repo-select">仓库</label>
+        <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="repo-select" @bind="SelectedRepo">
+            <option value="">请选择仓库</option>
+            <option value="minio/minio">minio/minio</option>
+            <option value="gitea/gitea">gitea/gitea</option>
+            <option value="microsoft/vscode">microsoft/vscode</option>
+        </select>
+    </div>
+    <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="NextStep">下一步</button>
+</Card>
+
+<Toast Message="@ToastMessage" Type="@ToastType" Visible="@ShowToast" OnClose="CloseToast" />
+
+@code {
+    private string SelectedRepo { get; set; } = "";
+    private string ToastMessage { get; set; } = "";
+    private Toast.ToastType ToastType { get; set; } = Toast.ToastType.Success;
+    private bool ShowToast { get; set; } = false;
+
+    private async Task NextStep()
+    {
+        if (!string.IsNullOrEmpty(SelectedRepo))
+        {
+            // 跳转到选择工作流页面
+            NavigationManager.NavigateTo($"/workflow?repo={SelectedRepo}");
+        }
+        else
+        {
+            ShowErrorToast("请选择仓库");
+        }
+    }
+
+    private void ShowErrorToast(string message)
+    {
+        ToastMessage = message;
+        ToastType = Toast.ToastType.Error;
+        ShowToast = true;
+    }
+
+    private void CloseToast()
+    {
+        ShowToast = false;
+    }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = default!;
+}

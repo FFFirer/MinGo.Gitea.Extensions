@@ -1,0 +1,75 @@
+@page "/confirm-trigger"
+
+<h1 class="text-2xl font-semibold text-gray-800 mb-6">触发工作流</h1>
+
+<Card Title="执行步骤">
+    <Steps CurrentStep="4" />
+</Card>
+
+<Card Title="执行信息">
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-800 mb-2">仓库</label>
+        <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedRepo</div>
+    </div>
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-800 mb-2">工作流</label>
+        <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedWorkflow</div>
+    </div>
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-800 mb-2">分支</label>
+        <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedBranch</div>
+    </div>
+    <div class="mt-4 flex gap-2">
+        <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep">上一步</button>
+        <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="TriggerWorkflow">确认触发</button>
+    </div>
+</Card>
+
+<Toast Message="@ToastMessage" Type="@ToastType" Visible="@ShowToast" OnClose="CloseToast" />
+
+@code {
+    private string SelectedRepo { get; set; } = "";
+    private string SelectedWorkflow { get; set; } = "";
+    private string SelectedBranch { get; set; } = "";
+    private string ToastMessage { get; set; } = "";
+    private Toast.ToastType ToastType { get; set; } = Toast.ToastType.Success;
+    private bool ShowToast { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+        // 从URL参数获取仓库、工作流和分支信息
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        SelectedRepo = query["repo"] ?? "";
+        SelectedWorkflow = query["workflow"] ?? "";
+        SelectedBranch = query["branch"] ?? "";
+    }
+
+    private async Task TriggerWorkflow()
+    {
+        ShowSuccessToast("工作流触发成功");
+        // 跳转到工作流详情页面
+        NavigationManager.NavigateTo("/workflow-detail");
+    }
+
+    private async Task PrevStep()
+    {
+        // 返回到选择分支页面
+        NavigationManager.NavigateTo($"/branch?repo={SelectedRepo}&workflow={SelectedWorkflow}");
+    }
+
+    private void ShowSuccessToast(string message)
+    {
+        ToastMessage = message;
+        ToastType = Toast.ToastType.Success;
+        ShowToast = true;
+    }
+
+    private void CloseToast()
+    {
+        ShowToast = false;
+    }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = default!;
+}

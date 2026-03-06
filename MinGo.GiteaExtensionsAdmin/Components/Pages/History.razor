@@ -1,0 +1,89 @@
+@page "/history"
+
+<h1 class="text-2xl font-semibold text-gray-800 mb-6">执行历史</h1>
+
+<Card Title="最近执行记录">
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-800 mb-2" for="history-filter">过滤</label>
+        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="history-filter" placeholder="输入关键词搜索">
+    </div>
+    <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">刷新</button>
+</Card>
+
+<Card Title="执行记录列表">
+    <div class="overflow-x-auto">
+        <table class="w-full border-collapse">
+            <thead>
+                <tr class="border-b border-gray-200">
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">工作流</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">仓库</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">分支</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">状态</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">开始时间</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-800">CI/CD Pipeline</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">minio/minio</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">main</td>
+                    <td class="px-4 py-3">
+                        <StatusBadge Status="success" />
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500">2026-03-06 11:30:00</td>
+                    <td class="px-4 py-3">
+                        <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="ViewDetail">查看</button>
+                    </td>
+                </tr>
+                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-800">Code Quality</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">gitea/gitea</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">develop</td>
+                    <td class="px-4 py-3">
+                        <StatusBadge Status="running" />
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500">2026-03-06 10:15:00</td>
+                    <td class="px-4 py-3">
+                        <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="ViewDetail">查看</button>
+                    </td>
+                </tr>
+                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-800">Security Scan</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">microsoft/vscode</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">main</td>
+                    <td class="px-4 py-3">
+                        <StatusBadge Status="failed" />
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500">2026-03-06 09:45:00</td>
+                    <td class="px-4 py-3">
+                        <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="ViewDetail">查看</button>
+                    </td>
+                </tr>
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-800">CI/CD Pipeline</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">minio/minio</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">feature-branch</td>
+                    <td class="px-4 py-3">
+                        <StatusBadge Status="success" />
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500">2026-03-05 16:20:00</td>
+                    <td class="px-4 py-3">
+                        <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="ViewDetail">查看</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</Card>
+
+@code {
+    private async Task ViewDetail()
+    {
+        // 跳转到工作流详情页面
+        NavigationManager.NavigateTo("/workflow-detail");
+    }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = default!;
+}

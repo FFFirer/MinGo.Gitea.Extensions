@@ -1,0 +1,61 @@
+@if (Visible)
+{
+    <div class="toast fixed top-5 right-5 p-3 rounded-md shadow-lg flex items-center gap-2 z-50 transition-all duration-300 transform @(Visible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0") @ToastClass">
+        @Message
+    </div>
+}
+
+<style>
+    .toast {
+        transition: all 0.3s ease;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter]
+    public ToastType Type { get; set; } = ToastType.Success;
+
+    [Parameter]
+    public bool Visible { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private string ToastClass
+    {
+        get
+        {
+            switch (Type)
+            {
+                case ToastType.Success:
+                    return "bg-green-100 text-green-700";
+                case ToastType.Warning:
+                    return "bg-yellow-100 text-yellow-700";
+                case ToastType.Error:
+                    return "bg-red-100 text-red-700";
+                default:
+                    return "bg-gray-100 text-gray-700";
+            }
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Visible)
+        {
+            // 3秒后自动关闭
+            await Task.Delay(3000);
+            await OnClose.InvokeAsync();
+        }
+    }
+
+    public enum ToastType
+    {
+        Success,
+        Warning,
+        Error
+    }
+}

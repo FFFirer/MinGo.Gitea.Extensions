@@ -7,6 +7,7 @@ public class GiteaExtensionsDbContext : DbContext
 {
     public DbSet<ScheduledTrigger> ScheduledTriggers { get; set; }
     public DbSet<WorkflowRunHistory> WorkflowRunHistories { get; set; }
+    public DbSet<GiteaConfig> GiteaConfigs { get; set; }
 
     public GiteaExtensionsDbContext(DbContextOptions<GiteaExtensionsDbContext> options) : base(options)
     {
@@ -23,5 +24,9 @@ public class GiteaExtensionsDbContext : DbContext
         // 配置WorkflowRunHistory模型
         modelBuilder.Entity<WorkflowRunHistory>()
             .HasKey(h => h.Id);
+        
+        // 配置GiteaConfig模型
+        modelBuilder.Entity<GiteaConfig>()
+            .HasKey(c => c.Id);
     }
 }

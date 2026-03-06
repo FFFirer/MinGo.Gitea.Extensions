@@ -1,0 +1,60 @@
+<nav class="bg-white shadow-sm py-4 px-6 flex justify-between items-center">
+    <div class="text-xl font-semibold text-blue-600">Workflows</div>
+    <ul class="flex gap-5">
+        <li>
+            <NavLink href="/" class="nav-link">
+                首页
+            </NavLink>
+        </li>
+        <li>
+            <NavLink href="/trigger-workflow" class="nav-link">
+                触发工作流
+            </NavLink>
+        </li>
+        <li>
+            <NavLink href="/history" class="nav-link">
+                执行历史
+            </NavLink>
+        </li>
+        <li>
+            <NavLink href="/settings" class="nav-link">
+                设置
+            </NavLink>
+        </li>
+    </ul>
+</nav>
+
+<style>
+    .nav-link {
+        text-decoration: none;
+        color: #5E6C84;
+        font-size: 14px;
+        font-weight: 400;
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+        background-color: #F5F7FA;
+        color: #172B4D;
+    }
+
+    .nav-link.active {
+        color: #0052CC;
+        font-weight: 500;
+    }
+
+    @@media (max-width: 768px) {
+        nav {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        ul {
+            width: 100%;
+            justify-content: space-between;
+        }
+    }
+</style>

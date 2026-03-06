@@ -1,0 +1,93 @@
+@page "/settings"
+@inject MinGo.Gitea.Extensions.Application.Services.GiteaConfigService GiteaConfigService
+
+<h1 class="text-2xl font-semibold text-gray-800 mb-6">设置</h1>
+
+<Card Title="Gitea API 配置">
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-800 mb-2" for="gitea-url">Gitea URL</label>
+        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="gitea-url" placeholder="https://gitea.example.com" @bind="GiteaUrl">
+    </div>
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-800 mb-2" for="gitea-token">API Token</label>
+        <input type="password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="gitea-token" placeholder="输入API Token" @bind="GiteaToken">
+    </div>
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-800 mb-2" for="gitea-username">用户名</label>
+        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="gitea-username" placeholder="输入用户名" @bind="GiteaUsername">
+    </div>
+    <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="SaveSettings">保存设置</button>
+</Card>
+
+<Toast Message="@ToastMessage" Type="@ToastType" Visible="@ShowToast" OnClose="CloseToast" />
+
+@code {
+    private string GiteaUrl { get; set; } = "";
+    private string GiteaToken { get; set; } = "";
+    private string GiteaUsername { get; set; } = "";
+    private string ToastMessage { get; set; } = "";
+    private Toast.ToastType ToastType { get; set; } = Toast.ToastType.Success;
+    private bool ShowToast { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettings();
+    }
+
+    private async Task LoadSettings()
+    {
+        var config = await GiteaConfigService.GetConfigAsync();
+        if (config != null)
+        {
+            GiteaUrl = config.ServerUrl;
+            GiteaToken = config.Token;
+            GiteaUsername = config.Username;
+        }
+    }
+
+    private async Task SaveSettings()
+    {
+        if (!string.IsNullOrEmpty(GiteaUrl) && !string.IsNullOrEmpty(GiteaToken))
+        {
+            var config = new MinGo.Gitea.Extensions.Core.Models.GiteaConfig
+            {
+                ServerUrl = GiteaUrl,
+                Token = GiteaToken,
+                Username = GiteaUsername
+            };
+
+            var success = await GiteaConfigService.SaveConfigAsync(config);
+            if (success)
+            {
+                ShowSuccessToast("设置保存成功");
+            }
+            else
+            {
+                ShowErrorToast("设置保存失败");
+            }
+        }
+        else
+        {
+            ShowErrorToast("请填写完整的配置信息");
+        }
+    }
+
+    private void ShowSuccessToast(string message)
+    {
+        ToastMessage = message;
+        ToastType = Toast.ToastType.Success;
+        ShowToast = true;
+    }
+
+    private void ShowErrorToast(string message)
+    {
+        ToastMessage = message;
+        ToastType = Toast.ToastType.Error;
+        ShowToast = true;
+    }
+
+    private void CloseToast()
+    {
+        ShowToast = false;
+    }
+}

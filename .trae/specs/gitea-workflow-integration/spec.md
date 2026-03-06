@@ -1,83 +1,171 @@
-# Gitea工作流集成扩展 - 产品需求文档
+# Gitea 工作流集成功能规格
 
-## Overview
-- **Summary**: 开发一个基于.NET 10和Blazor的Gitea工作流集成扩展，通过Gitea开放平台接口获取工作流信息并提供多种触发工作流执行的方式。
-- **Purpose**: 解决Gitea原生工作流触发方式有限的问题，提供更灵活、多样化的工作流执行触发能力。
-- **Target Users**: 开发团队、DevOps工程师、项目管理员。
+## 1. 概述
 
-## Goals
-- 通过Gitea开放平台接口获取工作流信息
-- 实现多种触发工作流执行的方式
-- 提供直观的Blazor前端界面进行管理和操作
-- 支持工作流执行状态的监控和历史记录
+根据原型设计 `docs/prototype.html`，重新实现 Gitea 工作流集成功能，包括工作流执行概览、手动触发工作流、执行历史和设置页面。
 
-## Non-Goals (Out of Scope)
-- 不修改Gitea核心代码
-- 不支持自定义工作流定义
-- 不处理工作流执行的具体逻辑，仅负责触发和监控
+## 2. 技术栈
 
-## Background & Context
-- Gitea是一个轻量级的Git服务，提供了工作流功能
-- 目前Gitea工作流触发方式主要依赖代码提交、PR等事件
-- 本项目旨在通过Gitea开放API扩展工作流触发能力
-- 项目使用.NET 10、ASP.NET Core 10、Blazor和TailwindCSS技术栈
+- .NET 10
+- ASP.NET Core 10
+- Blazor WebAssembly
+- TailwindCSS
+- EFCore + Sqlite
 
-## Functional Requirements
-- **FR-1**: Gitea API集成，包括认证和基础API调用
-- **FR-2**: 工作流信息获取，包括列出仓库、分支和工作流
-- **FR-3**: 工作流触发功能，支持手动触发和定时触发
-- **FR-4**: 工作流执行状态监控，包括实时状态和历史记录
-- **FR-5**: Blazor前端界面，提供用户友好的操作体验
+## 3. 页面结构
 
-## Non-Functional Requirements
-- **NFR-1**: 性能要求，API调用响应时间不超过2秒
-- **NFR-2**: 安全性，使用OAuth或Token认证保护API访问
-- **NFR-3**: 可靠性，支持错误处理和重试机制
-- **NFR-4**: 可扩展性，模块化设计便于后续功能扩展
+### 3.1 导航栏
 
-## Constraints
-- **Technical**: 使用.NET 10、ASP.NET Core 10、Blazor、TailwindCSS、EFCore+Sqlite
-- **Business**: 无特殊业务约束
-- **Dependencies**: Gitea API v1.20+
+- 实现与原型一致的导航栏，包含以下菜单项：
+  - 首页
+  - 触发工作流
+  - 执行历史
+  - 设置
+- 导航栏应固定在页面顶部，使用白色背景和阴影效果
+- 当前激活的菜单项应显示为蓝色
 
-## Assumptions
-- 目标Gitea服务器已启用API访问
-- 用户拥有足够的权限执行工作流相关操作
-- 网络连接稳定，能够访问Gitea服务器
+### 3.2 首页
 
-## Acceptance Criteria
+- 显示工作流执行概览卡片：
+  - 总执行次数
+  - 成功率
+  - 平均执行时间
+  - 运行中
+- 显示最近执行记录表格，包含：
+  - 工作流名称
+  - 仓库
+  - 状态
+  - 开始时间
+  - 操作按钮
 
-### AC-1: Gitea API集成
-- **Given**: 配置了正确的Gitea服务器地址和认证信息
-- **When**: 启动应用并进行API连接测试
-- **Then**: 成功连接到Gitea API并验证认证状态
-- **Verification**: `programmatic`
+### 3.3 触发工作流
 
-### AC-2: 工作流信息获取
-- **Given**: 已连接到Gitea API
-- **When**: 请求获取仓库列表和工作流信息
-- **Then**: 正确显示仓库列表、分支信息和工作流定义
-- **Verification**: `human-judgment`
+- 实现四步流程：
+  1. 选择仓库
+  2. 选择工作流
+  3. 选择分支
+  4. 触发工作流
+- 每步都应有对应的步骤指示器
+- 实现页面间的导航逻辑
 
-### AC-3: 工作流触发
-- **Given**: 选择了特定仓库和工作流
-- **When**: 点击触发按钮或到达定时触发时间
-- **Then**: 工作流成功开始执行并返回执行ID
-- **Verification**: `programmatic`
+### 3.4 执行历史
 
-### AC-4: 工作流状态监控
-- **Given**: 工作流已被触发执行
-- **When**: 查看工作流执行详情
-- **Then**: 显示实时执行状态和详细日志
-- **Verification**: `human-judgment`
+- 显示执行记录列表，包含：
+  - 工作流名称
+  - 仓库
+  - 分支
+  - 状态
+  - 开始时间
+  - 操作按钮
+- 提供搜索过滤功能
 
-### AC-5: 前端界面体验
-- **Given**: 用户打开应用
-- **When**: 导航和操作界面元素
-- **Then**: 界面响应流畅，操作直观易懂
-- **Verification**: `human-judgment`
+### 3.5 设置页面
 
-## Open Questions
-- [ ] Gitea服务器的具体版本和API兼容性
-- [ ] 工作流触发的权限控制策略
-- [ ] 定时触发的存储和管理机制
+- 实现 Gitea API 配置表单：
+  - Gitea URL
+  - API Token
+- 提供保存设置功能
+
+## 4. 可复用组件
+
+### 4.1 导航栏组件 (`Navbar.razor`)
+
+- 实现与原型一致的导航栏
+- 支持响应式设计
+- 处理菜单项激活状态
+
+### 4.2 卡片组件 (`Card.razor`)
+
+- 实现通用卡片样式
+- 支持自定义标题和内容
+- 包含悬停效果
+
+### 4.3 步骤指示器组件 (`Steps.razor`)
+
+- 实现四步流程的步骤指示器
+- 支持标记已完成和当前步骤
+- 包含连接线和动画效果
+
+### 4.4 工作流卡片组件 (`WorkflowCard.razor`)
+
+- 实现工作流选择卡片
+- 支持激活状态
+- 包含工作流名称、描述和分支信息
+
+### 4.5 消息提示组件 (`Toast.razor`)
+
+- 实现成功、警告和错误消息提示
+- 支持自动消失
+- 包含动画效果
+
+### 4.6 状态标签组件 (`StatusBadge.razor`)
+
+- 实现不同状态的标签样式
+- 支持成功、运行中、失败状态
+
+## 5. 数据模型
+
+### 5.1 工作流运行历史
+
+```csharp
+public class WorkflowRunHistory
+{
+    public int Id { get; set; }
+    public string WorkflowName { get; set; }
+    public string Repository { get; set; }
+    public string Branch { get; set; }
+    public string Status { get; set; }
+    public DateTime StartTime { get; set; }
+    public DateTime? EndTime { get; set; }
+}
+```
+
+### 5.2 Gitea 配置
+
+```csharp
+public class GiteaConfig
+{
+    public string Url { get; set; }
+    public string Token { get; set; }
+}
+```
+
+## 6. 服务
+
+### 6.1 工作流服务
+
+- 提供获取工作流列表的方法
+- 提供触发工作流的方法
+- 提供获取工作流运行历史的方法
+
+### 6.2 Gitea API 客户端
+
+- 实现与 Gitea API 的交互
+- 提供获取仓库、工作流和分支的方法
+- 提供触发工作流的方法
+
+## 7. 样式实现
+
+- 使用 TailwindCSS 实现与原型一致的样式
+- 定义与原型相同的颜色变量
+- 实现响应式设计
+- 确保所有动画效果与原型一致
+
+## 8. 实现计划
+
+1. 创建可复用组件
+2. 实现导航栏和布局
+3. 实现首页
+4. 实现触发工作流流程
+5. 实现执行历史页面
+6. 实现设置页面
+7. 集成服务和数据模型
+8. 测试和优化
+
+## 9. 验收标准
+
+- 所有页面和组件与原型设计完全一致
+- 所有功能正常工作
+- 响应式设计适配不同屏幕尺寸
+- 动画效果与原型一致
+- 代码结构清晰，组件复用性高
