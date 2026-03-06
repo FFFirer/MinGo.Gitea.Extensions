@@ -10,7 +10,10 @@ namespace MinGo.Gitea.Core.Tests;
 public class GiteaApiClientTests
 {
     private const string TestFlagEnvironmentVariable = "RUN_GITEA_API_TESTS";
-    public static bool IsGiteaApiTestEnabled => Environment.GetEnvironmentVariable(TestFlagEnvironmentVariable) == "1";
+    // public static bool IsGiteaApiTestEnabled => Environment.GetEnvironmentVariable(TestFlagEnvironmentVariable) == "1";
+    
+    public static bool IsGiteaApiTestEnabled => true;
+
     
     private readonly HttpClient _httpClient;
     private readonly GiteaConfig _config;

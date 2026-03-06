@@ -3,4 +3,7 @@
     <Project Path="src/MinGo.Gitea.Admin/MinGo.Gitea.Admin.csproj" />
     <Project Path="src/MinGo.Gitea.Core/MinGo.Gitea.Core.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MinGo.Gitea.Core.Tests/MinGo.Gitea.Core.Tests.csproj" />
+  </Folder>
 </Solution>

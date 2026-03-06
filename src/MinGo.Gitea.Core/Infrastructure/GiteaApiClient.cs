@@ -42,15 +42,15 @@ public class GiteaApiClient : IGiteaApiClient
         var response = await _httpClient.GetAsync($"/api/v1/user/repos");
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        var repos = JsonConvert.DeserializeObject<List<dynamic>>(content);
+        var repos = JsonConvert.DeserializeObject<List<GiteaRepository>>(content);
         
         return repos?.Select(r => new Repository
         {
-            Id = r.id,
-            Name = r.name,
-            FullName = r.full_name,
-            Owner = r.owner.login,
-            HtmlUrl = r.html_url
+            Id = (int)r.Id,
+            Name = r.Name,
+            FullName = r.FullName,
+            Owner = r.Owner.Login,
+            HtmlUrl = r.HtmlUrl
         }) ?? Enumerable.Empty<Repository>();
     }
 
@@ -59,15 +59,15 @@ public class GiteaApiClient : IGiteaApiClient
         var response = await _httpClient.GetAsync($"/api/v1/repos/{owner}/{repo}/branches");
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        var branches = JsonConvert.DeserializeObject<List<dynamic>>(content);
+        var branches = JsonConvert.DeserializeObject<List<GiteaBranch>>(content);
         
         return branches?.Select(b => new Branch
         {
-            Name = b.name,
+            Name = b.Name,
             Commit = new Commit
             {
-                Sha = b.commit.sha,
-                Url = b.commit.url
+                Sha = b.Commit.Sha,
+                Url = b.Commit.Url
             }
         }) ?? Enumerable.Empty<Branch>();
     }
@@ -77,24 +77,23 @@ public class GiteaApiClient : IGiteaApiClient
         var response = await _httpClient.GetAsync($"/api/v1/repos/{owner}/{repo}/actions/workflows");
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        var result = JsonConvert.DeserializeObject<dynamic>(content);
-        var workflows = result?.workflows as IEnumerable<dynamic>;
+        var result = JsonConvert.DeserializeObject<GiteaWorkflowListResponse>(content);
         
-        return workflows?.Select(w => new Workflow
+        return result?.Workflows.Select(w => new Workflow
         {
-            Id = w.id,
-            Name = w.name,
-            Path = w.path,
-            State = w.state
+            Id = (int)w.Id,
+            Name = w.Name,
+            Path = w.Path,
+            State = w.State
         }) ?? Enumerable.Empty<Workflow>();
     }
 
     public async Task<WorkflowRun?> TriggerWorkflowAsync(string owner, string repo, string workflowId, string branch, Dictionary<string, string>? inputs = null)
     {
-        var requestBody = new
+        var requestBody = new GiteaWorkflowDispatchRequest
         {
-            @ref = branch,
-            inputs = inputs
+            Ref = branch,
+            Inputs = inputs
         };
         
         var content = new StringContent(JsonConvert.SerializeObject(requestBody), System.Text.Encoding.UTF8, "application/json");
@@ -111,7 +110,7 @@ public class GiteaApiClient : IGiteaApiClient
         var response = await _httpClient.GetAsync($"/api/v1/repos/{owner}/{repo}/actions/runs/{runId}");
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        var run = JsonConvert.DeserializeObject<dynamic>(content);
+        var run = JsonConvert.DeserializeObject<GiteaWorkflowRun>(content);
         
         if (run == null)
         {
@@ -120,13 +119,13 @@ public class GiteaApiClient : IGiteaApiClient
         
         return new WorkflowRun
         {
-            Id = run.id,
-            Name = run.name,
-            Status = run.status,
-            Conclusion = run.conclusion,
-            CreatedAt = DateTime.Parse(run.created_at.ToString()),
-            UpdatedAt = DateTime.Parse(run.updated_at.ToString()),
-            Branch = run.head_branch
+            Id = (int)run.Id,
+            Name = run.Name,
+            Status = run.Status,
+            Conclusion = run.Conclusion,
+            CreatedAt = DateTime.Parse(run.CreatedAt),
+            UpdatedAt = DateTime.Parse(run.UpdatedAt),
+            Branch = run.HeadBranch
         };
     }
 
@@ -135,18 +134,17 @@ public class GiteaApiClient : IGiteaApiClient
         var response = await _httpClient.GetAsync($"/api/v1/repos/{owner}/{repo}/actions/runs");
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        var result = JsonConvert.DeserializeObject<dynamic>(content);
-        var runs = result?.workflow_runs as IEnumerable<dynamic>;
+        var result = JsonConvert.DeserializeObject<GiteaWorkflowRunListResponse>(content);
         
-        return runs?.Select(r => new WorkflowRun
+        return result?.WorkflowRuns.Select(r => new WorkflowRun
         {
-            Id = r.id,
-            Name = r.name,
-            Status = r.status,
-            Conclusion = r.conclusion,
-            CreatedAt = DateTime.Parse(r.created_at.ToString()),
-            UpdatedAt = DateTime.Parse(r.updated_at.ToString()),
-            Branch = r.head_branch
+            Id = (int)r.Id,
+            Name = r.Name,
+            Status = r.Status,
+            Conclusion = r.Conclusion,
+            CreatedAt = DateTime.Parse(r.CreatedAt),
+            UpdatedAt = DateTime.Parse(r.UpdatedAt),
+            Branch = r.HeadBranch
         }) ?? Enumerable.Empty<WorkflowRun>();
     }
 }
