@@ -28,7 +28,7 @@ public class GiteaBranch
 // 提交模型
 public class GiteaCommit
 {
-    public required string Sha { get; set; }
+    public required string Id { get; set; }
     public required string Url { get; set; }
 }
 

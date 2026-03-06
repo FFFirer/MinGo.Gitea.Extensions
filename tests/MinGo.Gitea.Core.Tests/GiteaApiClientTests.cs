@@ -112,7 +112,7 @@ public class GiteaApiClientTests
         Console.WriteLine($"Branches for {testRepo.FullName}:");
         foreach (var branch in result)
         {
-            Console.WriteLine($"- {branch.Name} (SHA: {branch.Commit.Sha})");
+            Console.WriteLine($"- {branch.Name} (SHA: {branch.Commit.Id})");
         }
     }
 

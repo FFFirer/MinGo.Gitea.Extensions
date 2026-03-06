@@ -1,42 +1,198 @@
 @page "/trigger-workflow"
 
+@using MinGo.Gitea.Core.Models
+
 <h1 class="text-2xl font-semibold text-gray-800 mb-6">手动触发工作流执行</h1>
 
-<Card Title="执行步骤">
-    <Steps CurrentStep="1" />
-</Card>
-
-<Card Title="选择仓库">
-    <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-800 mb-2" for="repo-select">仓库</label>
-        <div class="relative">
-            @if (IsLoading)
-            {
-                <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-10">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-            }
-            <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="repo-select" @bind="SelectedRepo">
-                <option value="">请选择仓库</option>
-                @foreach (var repo in Repositories)
-                {
-                    <option value="@repo.FullName">@repo.FullName</option>
-                }
-            </select>
+@* <Card Title="执行步骤">
+    <div class="flex flex-wrap items-center gap-4">
+        <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full @(CurrentStep >= 1 ? "bg-blue-600" : "bg-gray-300") text-white flex items-center justify-center mr-2">1</div>
+            <span class="text-gray-800">选择仓库</span>
+        </div>
+        <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full @(CurrentStep >= 2 ? "bg-blue-600" : "bg-gray-300") text-white flex items-center justify-center mr-2">2</div>
+            <span class="text-gray-800">选择工作流</span>
+        </div>
+        <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full @(CurrentStep >= 3 ? "bg-blue-600" : "bg-gray-300") text-white flex items-center justify-center mr-2">3</div>
+            <span class="text-gray-800">选择分支</span>
+        </div>
+        <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full @(CurrentStep >= 4 ? "bg-blue-600" : "bg-gray-300") text-white flex items-center justify-center mr-2">4</div>
+            <span class="text-gray-800">触发工作流</span>
         </div>
     </div>
-    <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="NextStep" disabled="@IsLoading">下一步</button>
-</Card>
+</Card> *@
+
+<Steps CurrentStep="CurrentStep" />
+
+@* 步骤1：选择仓库 *@
+@if (CurrentStep == 1)
+{
+    <Card Title="选择仓库">
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-800 mb-2" for="repo-select">仓库</label>
+            <div class="relative">
+                @if (IsLoadingRepos)
+                {
+                    <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-10">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                }
+                <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="repo-select" @bind="SelectedRepoId" @bind:after="RepoChanged">
+                    <option value="">请选择仓库</option>
+                    @foreach (var repo in Repositories)
+                    {
+                        <option value="@repo.Id">@($"{repo.Owner}/{repo.Name}") </option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="mt-4 flex">
+            <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="NextStep" disabled="@(!SelectedRepoId.HasValue || IsLoadingRepos)">
+                下一步
+            </button>
+        </div>
+    </Card>
+}
+
+@* 步骤2：选择工作流 *@
+@if (CurrentStep == 2)
+{
+    <Card Title="选择工作流">
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-800 mb-2">工作流</label>
+            @if (IsLoadingWorkflows)
+            {
+                <div class="flex justify-center items-center py-8">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+            }
+            else if (Workflows.Count == 0)
+            {
+                <div class="text-center py-8 text-gray-500">
+                    该仓库没有可用的工作流
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach (var workflow in Workflows)
+                    {
+                        <WorkflowCard 
+                            Name="@workflow.Name" 
+                            Description="@workflow.Path" 
+                            Branch="@workflow.State" 
+                            IsActive="SelectedWorkflowId == workflow.Id.ToString()"
+                            OnSelect="(name) => SelectWorkflow(workflow.Id.ToString())"
+                        />
+                    }
+                </div>
+            }
+        </div>
+        <div class="mt-4 flex justify-start gap-2">
+            <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep">
+                上一步
+            </button>
+            <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="NextStep" disabled="@(string.IsNullOrEmpty(SelectedWorkflowId) || IsLoadingWorkflows)">
+                下一步
+            </button>
+        </div>
+    </Card>
+}
+
+@* 步骤3：选择分支 *@
+@if (CurrentStep == 3)
+{
+    <Card Title="选择分支">
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-800 mb-2" for="branch-select">分支</label>
+            <div class="relative">
+                @if (IsLoadingBranches)
+                {
+                    <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-10">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
+                        <option value="">加载中...</option>
+                    </select>
+                }
+                else
+                {
+                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="branch-select" @bind="SelectedBranch">
+                        <option value="">请选择分支</option>
+                        @foreach (var branch in Branches)
+                        {
+                            <option value="@branch.Name">@branch.Name</option>
+                        }
+                    </select>
+                }
+            </div>
+        </div>
+        <div class="mt-4 flex justify-start gap-2">
+            <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep">
+                上一步
+            </button>
+            <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="NextStep" disabled="@(string.IsNullOrEmpty(SelectedBranch) || IsLoadingBranches)">
+                下一步
+            </button>
+        </div>
+    </Card>
+}
+
+@* 步骤4：触发工作流 *@
+@if (CurrentStep == 4)
+{
+    <Card Title="执行信息">
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-800 mb-2">仓库</label>
+            <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedRepoName</div>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-800 mb-2">工作流</label>
+            <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedWorkflowName</div>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-800 mb-2">分支</label>
+            <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedBranch</div>
+        </div>
+        <div class="mt-4 flex justify-start gap-2">
+            <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep">
+                上一步
+            </button>
+            <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="Start" disabled="@IsTriggering">
+                @(IsTriggering ? "触发中..." : "确认触发")
+            </button>
+        </div>
+    </Card>
+}
 
 <Toast Message="@ToastMessage" Type="@ToastType" Visible="@ShowToast" OnClose="CloseToast" />
 
 @code {
-    private string SelectedRepo { get; set; } = "";
+    private int CurrentStep { get; set; } = 1;
+    private int? SelectedRepoId { get; set; } 
+    private string SelectedRepoName
+    {
+        get{
+            var repo = Repositories.FirstOrDefault(r => r.Id == SelectedRepoId);
+            return repo != null ? $"{repo.Owner}/{repo.Name}" : "";
+        }
+    }
+    private string SelectedWorkflowId { get; set; } = "";
+    private string SelectedWorkflowName { get; set; } = "";
+    private string SelectedBranch { get; set; } = "";
     private string ToastMessage { get; set; } = "";
     private Toast.ToastType ToastType { get; set; } = Toast.ToastType.Success;
     private bool ShowToast { get; set; } = false;
     private List<MinGo.Gitea.Core.Models.Repository> Repositories { get; set; } = new List<MinGo.Gitea.Core.Models.Repository>();
-    private bool IsLoading { get; set; } = false;
+    private List<MinGo.Gitea.Core.Models.Workflow> Workflows { get; set; } = new List<MinGo.Gitea.Core.Models.Workflow>();
+    private List<MinGo.Gitea.Core.Models.Branch> Branches { get; set; } = new List<MinGo.Gitea.Core.Models.Branch>();
+    private bool IsLoadingRepos { get; set; } = false;
+    private bool IsLoadingWorkflows { get; set; } = false;
+    private bool IsLoadingBranches { get; set; } = false;
+    private bool IsTriggering { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -45,7 +201,7 @@
 
     private async Task LoadRepositoriesAsync()
     {
-        IsLoading = true;
+        IsLoadingRepos = true;
         try
         {
             var repositories = await WorkflowService.GetRepositoriesAsync();
@@ -57,21 +213,148 @@
         }
         finally
         {
-            IsLoading = false;
+            IsLoadingRepos = false;
         }
     }
 
-    private async Task NextStep()
+    private async Task RepoChanged()
     {
-        if (!string.IsNullOrEmpty(SelectedRepo))
+        SelectedWorkflowId = "";
+        SelectedWorkflowName = "";
+        SelectedBranch = "";
+        Workflows.Clear();
+        Branches.Clear();
+        
+        if (SelectedRepoId > 0)
         {
-            // 跳转到选择工作流页面
-            NavigationManager.NavigateTo($"/workflow?repo={SelectedRepo}");
+            await LoadWorkflowsAsync();
         }
-        else
+    }
+
+    private async Task LoadWorkflowsAsync()
+    {
+        IsLoadingWorkflows = true;
+        try
         {
-            ShowErrorToast("请选择仓库");
+            var repo = ParseRepo(SelectedRepoId);
+            if(repo is null){
+                return;
+            }
+            var workflows = await WorkflowService.GetWorkflowsAsync(repo.Owner, repo.Name);
+            Workflows = workflows.ToList();
         }
+        catch (Exception ex)
+        {
+            ShowErrorToast($"加载工作流失败: {ex.Message}");
+        }
+        finally
+        {
+            IsLoadingWorkflows = false;
+        }
+    }
+
+    private async Task SelectWorkflow(string workflowId)
+    {
+        SelectedWorkflowId = workflowId;
+        SelectedBranch = "";
+        Branches.Clear();
+        
+        // 获取工作流名称
+        var workflow = Workflows.FirstOrDefault(w => w.Id.ToString() == workflowId);
+        if (workflow != null)
+        {
+            SelectedWorkflowName = workflow.Name;
+        }
+        
+        // 加载分支
+        await LoadBranchesAsync();
+    }
+
+    private async Task LoadBranchesAsync()
+    {
+        if (!(SelectedRepoId > 0)) return;
+        
+        IsLoadingBranches = true;
+        try
+        {
+            var repo = ParseRepo(SelectedRepoId);
+            if(repo is null){
+                return;
+            }
+            var branches = await WorkflowService.GetBranchesAsync(repo.Owner, repo.Name);
+            Branches = branches.ToList();
+        }
+        catch (Exception ex)
+        {
+            ShowErrorToast($"加载分支失败: {ex.Message}");
+        }
+        finally
+        {
+            IsLoadingBranches = false;
+        }
+    }
+
+    private Repository? ParseRepo(int? id) => Repositories.FirstOrDefault(r => r.Id == id);
+
+    private void NextStep()
+    {
+        if (CurrentStep < 4)
+        {
+            CurrentStep++;
+        }
+    }
+
+    private void PrevStep()
+    {
+        if (CurrentStep > 1)
+        {
+            CurrentStep--;
+        }
+    }
+
+    private async Task Start()
+    {
+        if (!(SelectedRepoId > 0) || string.IsNullOrEmpty(SelectedWorkflowId) || string.IsNullOrEmpty(SelectedBranch))
+        {
+            ShowErrorToast("请完成所有选择步骤");
+            return;
+        }
+        
+        IsTriggering = true;
+        try
+        {
+            var repo = ParseRepo(SelectedRepoId);
+            if(repo is null){
+                return;
+            }
+            var branch = Branches.FirstOrDefault(b => b.Name == SelectedBranch)!;
+            var workflowRun = await WorkflowService.TriggerWorkflowAsync(repo.Owner, repo.Name, SelectedWorkflowId, branch.Commit.Id);
+            if (workflowRun != null)
+            {
+                ShowSuccessToast("工作流触发成功");
+                // 跳转到工作流详情页面
+                NavigationManager.NavigateTo($"/workflow-detail?repo={SelectedRepoId}&runId={workflowRun.Id}");
+            }
+            else
+            {
+                ShowErrorToast("工作流触发失败");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowErrorToast($"触发工作流失败: {ex.Message}");
+        }
+        finally
+        {
+            IsTriggering = false;
+        }
+    }
+
+    private void ShowSuccessToast(string message)
+    {
+        ToastMessage = message;
+        ToastType = Toast.ToastType.Success;
+        ShowToast = true;
     }
 
     private void ShowErrorToast(string message)

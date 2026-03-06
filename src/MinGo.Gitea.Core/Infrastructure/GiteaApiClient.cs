@@ -1,6 +1,7 @@
 using MinGo.Gitea.Core.Interfaces;
 using MinGo.Gitea.Core.Models;
 using Newtonsoft.Json;
+using System.Net.Http;
 
 namespace MinGo.Gitea.Infrastructure;
 
@@ -18,17 +19,23 @@ public class GiteaApiClient : IGiteaApiClient
         {
             throw new ArgumentNullException(nameof(config.ServerUrl), "ServerUrl cannot be null or empty");
         }
-        
-        _httpClient.BaseAddress = new Uri(_config.ServerUrl);
-        _httpClient.DefaultRequestHeaders.Add("Authorization", $"token {_config.Token}");
-        _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+    }
+
+    private HttpRequestMessage CreateRequest(HttpMethod method, string endpoint)
+    {
+        var uri = new Uri(new Uri(_config.ServerUrl), endpoint);
+        var request = new HttpRequestMessage(method, uri);
+        request.Headers.Add("Authorization", $"token {_config.Token}");
+        request.Headers.Add("Accept", "application/json");
+        return request;
     }
 
     public async Task<bool> TestConnectionAsync()
     {
         try
         {
-            var response = await _httpClient.GetAsync("/api/v1/user");
+            var request = CreateRequest(HttpMethod.Get, "/api/v1/user");
+            var response = await _httpClient.SendAsync(request);
             return response.IsSuccessStatusCode;
         }
         catch
@@ -39,7 +46,8 @@ public class GiteaApiClient : IGiteaApiClient
 
     public async Task<IEnumerable<Repository>> GetRepositoriesAsync()
     {
-        var response = await _httpClient.GetAsync($"/api/v1/user/repos");
+        var request = CreateRequest(HttpMethod.Get, "/api/v1/user/repos");
+        var response = await _httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var repos = JsonConvert.DeserializeObject<List<GiteaRepository>>(content);
@@ -56,7 +64,8 @@ public class GiteaApiClient : IGiteaApiClient
 
     public async Task<IEnumerable<Branch>> GetBranchesAsync(string owner, string repo)
     {
-        var response = await _httpClient.GetAsync($"/api/v1/repos/{owner}/{repo}/branches");
+        var request = CreateRequest(HttpMethod.Get, $"/api/v1/repos/{owner}/{repo}/branches");
+        var response = await _httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var branches = JsonConvert.DeserializeObject<List<GiteaBranch>>(content);
@@ -66,7 +75,7 @@ public class GiteaApiClient : IGiteaApiClient
             Name = b.Name,
             Commit = new Commit
             {
-                Sha = b.Commit.Sha,
+                Id = b.Commit.Id,
                 Url = b.Commit.Url
             }
         }) ?? Enumerable.Empty<Branch>();
@@ -74,7 +83,8 @@ public class GiteaApiClient : IGiteaApiClient
 
     public async Task<IEnumerable<Workflow>> GetWorkflowsAsync(string owner, string repo)
     {
-        var response = await _httpClient.GetAsync($"/api/v1/repos/{owner}/{repo}/actions/workflows");
+        var request = CreateRequest(HttpMethod.Get, $"/api/v1/repos/{owner}/{repo}/actions/workflows");
+        var response = await _httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var result = JsonConvert.DeserializeObject<GiteaWorkflowListResponse>(content);
@@ -97,7 +107,9 @@ public class GiteaApiClient : IGiteaApiClient
         };
         
         var content = new StringContent(JsonConvert.SerializeObject(requestBody), System.Text.Encoding.UTF8, "application/json");
-        var response = await _httpClient.PostAsync($"/api/v1/repos/{owner}/{repo}/actions/workflows/{workflowId}/dispatches", content);
+        var request = CreateRequest(HttpMethod.Post, $"/api/v1/repos/{owner}/{repo}/actions/workflows/{workflowId}/dispatches");
+        request.Content = content;
+        var response = await _httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
         
         // Gitea returns 204 No Content on success, so we need to get the latest run
@@ -107,7 +119,8 @@ public class GiteaApiClient : IGiteaApiClient
 
     public async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId)
     {
-        var response = await _httpClient.GetAsync($"/api/v1/repos/{owner}/{repo}/actions/runs/{runId}");
+        var request = CreateRequest(HttpMethod.Get, $"/api/v1/repos/{owner}/{repo}/actions/runs/{runId}");
+        var response = await _httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var run = JsonConvert.DeserializeObject<GiteaWorkflowRun>(content);
@@ -131,7 +144,8 @@ public class GiteaApiClient : IGiteaApiClient
 
     public async Task<IEnumerable<WorkflowRun>> GetWorkflowRunsAsync(string owner, string repo)
     {
-        var response = await _httpClient.GetAsync($"/api/v1/repos/{owner}/{repo}/actions/runs");
+        var request = CreateRequest(HttpMethod.Get, $"/api/v1/repos/{owner}/{repo}/actions/runs");
+        var response = await _httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var result = JsonConvert.DeserializeObject<GiteaWorkflowRunListResponse>(content);

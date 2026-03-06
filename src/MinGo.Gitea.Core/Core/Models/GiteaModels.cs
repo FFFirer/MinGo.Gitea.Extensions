@@ -17,7 +17,7 @@ public class Branch
 
 public class Commit
 {
-    public required string Sha { get; set; }
+    public required string Id { get; set; }
     public required string Url { get; set; }
 }
 
