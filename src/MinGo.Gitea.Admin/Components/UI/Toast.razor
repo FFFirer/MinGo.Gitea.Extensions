@@ -1,7 +1,10 @@
 @if (Visible)
 {
-    <div class="toast fixed top-5 right-5 p-3 rounded-md shadow-lg flex items-center gap-2 z-50 transition-all duration-300 transform @(Visible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0") @ToastClass">
-        @Message
+    <div
+        class="toast fixed bottom-5 left-1/2 transform -translate-x-1/2 flex flex-row items-center gap-2 z-50 transition-all duration-300 @(Visible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0")">
+        <div class="p-3 rounded-md shadow-lg @ToastClass">
+            @Message
+        </div>
     </div>
 }
 
