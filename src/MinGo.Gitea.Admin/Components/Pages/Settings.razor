@@ -16,7 +16,20 @@
         <label class="block text-sm font-medium text-gray-800 mb-2" for="gitea-username">用户名</label>
         <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="gitea-username" placeholder="输入用户名" @bind="GiteaUsername">
     </div>
-    <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="SaveSettings">保存设置</button>
+    <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center" @onclick="SaveSettings" disabled="@IsLoading">
+        @if (IsLoading)
+        {
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>保存中...</span>
+        }
+        else
+        {
+            <span>保存设置</span>
+        }
+    </button>
 </Card>
 
 <Toast Message="@ToastMessage" Type="@ToastType" Visible="@ShowToast" OnClose="CloseToast" />
@@ -28,6 +41,7 @@
     private string ToastMessage { get; set; } = "";
     private Toast.ToastType ToastType { get; set; } = Toast.ToastType.Success;
     private bool ShowToast { get; set; } = false;
+    private bool IsLoading { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -49,21 +63,33 @@
     {
         if (!string.IsNullOrEmpty(GiteaUrl) && !string.IsNullOrEmpty(GiteaToken))
         {
-            var config = new MinGo.Gitea.Core.Models.GiteaConfig
+            IsLoading = true;
+            try
             {
-                ServerUrl = GiteaUrl,
-                Token = GiteaToken,
-                Username = GiteaUsername
-            };
+                var config = new MinGo.Gitea.Core.Models.GiteaConfig
+                {
+                    ServerUrl = GiteaUrl,
+                    Token = GiteaToken,
+                    Username = GiteaUsername
+                };
 
-            var success = await GiteaConfigService.SaveConfigAsync(config);
-            if (success)
-            {
-                ShowSuccessToast("设置保存成功");
+                var success = await GiteaConfigService.SaveConfigAsync(config);
+                if (success)
+                {
+                    ShowSuccessToast("设置保存成功");
+                }
+                else
+                {
+                    ShowErrorToast("设置保存失败");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                ShowErrorToast("设置保存失败");
+                ShowErrorToast($"保存失败：{ex.Message}");
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
         else
