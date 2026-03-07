@@ -131,8 +131,97 @@ public class WorkflowService
         return await _dbContext.WorkflowRunHistories.FirstOrDefaultAsync(h => h.Id == id);
     }
 
-    internal async Task<string?> TriggerWorkflowAsync(string owner, string repo, object workflow, object @ref, Dictionary<string, string> inputs)
+    public async Task<int> GetTotalRunCountAsync()
     {
-        throw new NotImplementedException();
+        if (_dbContext == null)
+        {
+            return 0;
+        }
+
+        return await _dbContext.WorkflowRunHistories.CountAsync();
+    }
+
+    public async Task<int> GetMonthlyRunCountAsync()
+    {
+        if (_dbContext == null)
+        {
+            return 0;
+        }
+
+        var now = DateTime.Now;
+        var startOfMonth = new DateTime(now.Year, now.Month, 1);
+
+        return await _dbContext.WorkflowRunHistories
+            .Where(h => h.CreatedAt >= startOfMonth)
+            .CountAsync();
+    }
+
+    public async Task<(int, int)> GetSuccessRateAsync()
+    {
+        if (_dbContext == null)
+        {
+            return (0, 0);
+        }
+
+        var total = await _dbContext.WorkflowRunHistories.CountAsync();
+        if (total == 0)
+        {
+            return (0, 0);
+        }
+
+        var successful = await _dbContext.WorkflowRunHistories
+            .Where(h => h.Status == "completed" && h.Conclusion == "success")
+            .CountAsync();
+
+        return (successful, total);
+    }
+
+    public async Task<TimeSpan?> GetAverageExecutionTimeAsync()
+    {
+        if (_dbContext == null)
+        {
+            return null;
+        }
+
+        var recentRuns = await _dbContext.WorkflowRunHistories
+            .Where(h => h.StartedAt != null && h.EndedAt != null)
+            .OrderByDescending(h => h.CreatedAt)
+            .Take(10)
+            .ToListAsync();
+
+        if (recentRuns.Count == 0)
+        {
+            return null;
+        }
+
+        var totalDuration = recentRuns.Sum(run => (run.EndedAt!.Value - run.StartedAt!.Value).TotalSeconds);
+        var averageSeconds = totalDuration / recentRuns.Count;
+
+        return TimeSpan.FromSeconds(averageSeconds);
+    }
+
+    public async Task<int> GetRunningRunCountAsync()
+    {
+        if (_dbContext == null)
+        {
+            return 0;
+        }
+
+        return await _dbContext.WorkflowRunHistories
+            .Where(h => h.Status == "running")
+            .CountAsync();
+    }
+
+    public async Task<IEnumerable<WorkflowRunHistory>> GetRecentRunsAsync(int count = 5)
+    {
+        if (_dbContext == null)
+        {
+            return Enumerable.Empty<WorkflowRunHistory>();
+        }
+
+        return await _dbContext.WorkflowRunHistories
+            .OrderByDescending(h => h.CreatedAt)
+            .Take(count)
+            .ToListAsync();
     }
 }

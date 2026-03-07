@@ -2,75 +2,153 @@
 
 <h1 class="text-2xl font-semibold text-gray-800 mb-6">工作流执行概览</h1>
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <Card Title="总执行次数">
-        <div class="text-3xl font-semibold text-gray-800 mt-2">128</div>
-        <div class="text-xs text-gray-500 mt-1">本月执行 32 次</div>
-    </Card>
-    
-    <Card Title="成功率">
-        <div class="text-3xl font-semibold text-green-600 mt-2">92%</div>
-        <div class="text-xs text-gray-500 mt-1">118/128 成功</div>
-    </Card>
-    
-    <Card Title="平均执行时间">
-        <div class="text-3xl font-semibold text-gray-800 mt-2">2m 15s</div>
-        <div class="text-xs text-gray-500 mt-1">最近 10 次执行</div>
-    </Card>
-    
-    <Card Title="运行中">
-        <div class="text-3xl font-semibold text-yellow-600 mt-2">3</div>
-        <div class="text-xs text-gray-500 mt-1">当前正在执行</div>
-    </Card>
-</div>
-
-<Card Title="最近执行记录">
-    <div class="overflow-x-auto">
-        <table class="w-full border-collapse">
-            <thead>
-                <tr class="border-b border-gray-200">
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">工作流</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">仓库</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">状态</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">开始时间</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-sm text-gray-800">CI/CD Pipeline</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">minio/minio</td>
-                    <td class="px-4 py-3">
-                        <StatusBadge Status="success" />
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-500">2026-03-06 11:30:00</td>
-                    <td class="px-4 py-3">
-                        <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">查看</button>
-                    </td>
-                </tr>
-                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-sm text-gray-800">Code Quality</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">gitea/gitea</td>
-                    <td class="px-4 py-3">
-                        <StatusBadge Status="running" />
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-500">2026-03-06 10:15:00</td>
-                    <td class="px-4 py-3">
-                        <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">查看</button>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-sm text-gray-800">Security Scan</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">microsoft/vscode</td>
-                    <td class="px-4 py-3">
-                        <StatusBadge Status="failed" />
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-500">2026-03-06 09:45:00</td>
-                    <td class="px-4 py-3">
-                        <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">查看</button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+@if (isLoading)
+{
+    <div class="flex items-center justify-center h-64">
+        <div class="text-gray-500">加载中...</div>
     </div>
-</Card>
+}
+else
+{
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card Title="总执行次数">
+            <div class="text-3xl font-semibold text-gray-800 mt-2">@totalRunCount</div>
+            <div class="text-xs text-gray-500 mt-1">本月执行 @monthlyRunCount 次</div>
+        </Card>
+        
+        <Card Title="成功率">
+            <div class="text-3xl font-semibold text-green-600 mt-2">@successRate%</div>
+            <div class="text-xs text-gray-500 mt-1">@successfulRuns/@totalRunCount 成功</div>
+        </Card>
+        
+        <Card Title="平均执行时间">
+            <div class="text-3xl font-semibold text-gray-800 mt-2">@averageExecutionTime</div>
+            <div class="text-xs text-gray-500 mt-1">最近 10 次执行</div>
+        </Card>
+        
+        <Card Title="运行中">
+            <div class="text-3xl font-semibold text-yellow-600 mt-2">@runningRunCount</div>
+            <div class="text-xs text-gray-500 mt-1">当前正在执行</div>
+        </Card>
+    </div>
+
+    <Card Title="最近执行记录">
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="border-b border-gray-200">
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">工作流</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">仓库</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">状态</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">开始时间</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (recentRuns.Any())
+                    {
+                        @foreach (var run in recentRuns)
+                        {
+                            <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                                <td class="px-4 py-3 text-sm text-gray-800">@run.WorkflowName</td>
+                                <td class="px-4 py-3 text-sm text-gray-500">@run.Owner/@run.Repo</td>
+                                <td class="px-4 py-3">
+                                    <StatusBadge Status="@GetStatusType(run.Status)" />
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500">@run.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td class="px-4 py-3">
+                                    <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="() => ViewRunDetails(run.Id)">查看</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="px-4 py-6 text-center text-gray-500">暂无执行记录</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </Card>
+}
+
+@code {
+    private bool isLoading = true;
+    private int totalRunCount;
+    private int monthlyRunCount;
+    private int successfulRuns;
+    private int successRate;
+    private string averageExecutionTime;
+    private int runningRunCount;
+    private IEnumerable<WorkflowRunHistory> recentRuns;
+
+    [Inject]
+    private WorkflowService WorkflowService { get; set; } = default!;
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        isLoading = true;
+
+        try
+        {
+            // 获取总执行次数
+            totalRunCount = await WorkflowService.GetTotalRunCountAsync();
+
+            // 获取本月执行次数
+            monthlyRunCount = await WorkflowService.GetMonthlyRunCountAsync();
+
+            // 获取成功率
+            var (successful, total) = await WorkflowService.GetSuccessRateAsync();
+            successfulRuns = successful;
+            successRate = total > 0 ? (int)((double)successful / total * 100) : 0;
+
+            // 获取平均执行时间
+            var avgTime = await WorkflowService.GetAverageExecutionTimeAsync();
+            averageExecutionTime = avgTime.HasValue 
+                ? $"{avgTime.Value.Minutes}m {avgTime.Value.Seconds}s"
+                : "N/A";
+
+            // 获取运行中次数
+            runningRunCount = await WorkflowService.GetRunningRunCountAsync();
+
+            // 获取最近执行记录
+            recentRuns = await WorkflowService.GetRecentRunsAsync(5);
+        }
+        catch (Exception ex)
+        {
+            // 处理错误
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetStatusType(string status)
+    {
+        return status switch
+        {
+            "running" => "running",
+            "completed" => "success",
+            "failed" => "failed",
+            "canceled" => "canceled",
+            _ => status.ToLower()
+        };
+    }
+
+    private void ViewRunDetails(int id)
+    {
+        NavigationManager.NavigateTo($"/history/{id}");
+    }
+}
