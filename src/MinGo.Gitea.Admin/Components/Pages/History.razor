@@ -5,9 +5,9 @@
 <Card Title="最近执行记录">
     <div class="mb-4">
         <label class="block text-sm font-medium text-gray-800 mb-2" for="history-filter">过滤</label>
-        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="history-filter" placeholder="输入关键词搜索">
+        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="history-filter" placeholder="输入关键词搜索" @bind="filter" @bind:event="oninput">
     </div>
-    <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">刷新</button>
+    <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="LoadHistories">刷新</button>
 </Card>
 
 <Card Title="执行记录列表">
@@ -24,66 +24,84 @@
                 </tr>
             </thead>
             <tbody>
-                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-sm text-gray-800">CI/CD Pipeline</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">minio/minio</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">main</td>
-                    <td class="px-4 py-3">
-                        <StatusBadge Status="success" />
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-500">2026-03-06 11:30:00</td>
-                    <td class="px-4 py-3">
-                        <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="ViewDetail">查看</button>
-                    </td>
-                </tr>
-                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-sm text-gray-800">Code Quality</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">gitea/gitea</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">develop</td>
-                    <td class="px-4 py-3">
-                        <StatusBadge Status="running" />
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-500">2026-03-06 10:15:00</td>
-                    <td class="px-4 py-3">
-                        <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="ViewDetail">查看</button>
-                    </td>
-                </tr>
-                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-sm text-gray-800">Security Scan</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">microsoft/vscode</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">main</td>
-                    <td class="px-4 py-3">
-                        <StatusBadge Status="failed" />
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-500">2026-03-06 09:45:00</td>
-                    <td class="px-4 py-3">
-                        <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="ViewDetail">查看</button>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-sm text-gray-800">CI/CD Pipeline</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">minio/minio</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">feature-branch</td>
-                    <td class="px-4 py-3">
-                        <StatusBadge Status="success" />
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-500">2026-03-05 16:20:00</td>
-                    <td class="px-4 py-3">
-                        <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="ViewDetail">查看</button>
-                    </td>
-                </tr>
+                @if (histories != null && histories.Any())
+                {
+                    @foreach (var history in histories)
+                    {
+                        <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-sm text-gray-800">@history.WorkflowName</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">@history.Repo</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">@history.Ref</td>
+                            <td class="px-4 py-3">
+                                <StatusBadge Status="@history.Status.ToLower()" />
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500">@history.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td class="px-4 py-3">
+                                <NavLink class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" href="@($"/history/{history.Id}")">查看</NavLink>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">暂无执行记录</td>
+                    </tr>
+                }
             </tbody>
         </table>
     </div>
+    
+    @if (totalCount > 0)
+    {
+        <div class="mt-4 flex justify-between items-center">
+            <div class="text-sm text-gray-600">
+                显示 @((page - 1) * pageSize + 1) - @Math.Min(page * pageSize, totalCount) 条，共 @totalCount 条
+            </div>
+            <div class="flex space-x-2">
+                <button class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50" @onclick="() => ChangePage(1)" disabled="@(page == 1)">首页</button>
+                <button class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50" @onclick="() => ChangePage(page - 1)" disabled="@(page == 1)">上一页</button>
+                <span class="px-3 py-1 border border-gray-300 rounded-md bg-gray-100">@(page)</span>
+                <button class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50" @onclick="() => ChangePage(page + 1)" disabled="@(page >= totalPages)">下一页</button>
+                <button class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50" @onclick="() => ChangePage(totalPages)" disabled="@(page >= totalPages)">末页</button>
+            </div>
+        </div>
+    }
 </Card>
 
 @code {
-    private async Task ViewDetail()
-    {
-        // 跳转到工作流详情页面
-        NavigationManager.NavigateTo("/workflow-detail");
-    }
-
+    private List<MinGo.Gitea.Core.Models.WorkflowRunHistory> histories = new();
+    private int totalCount = 0;
+    private int page = 1;
+    private int pageSize = 10;
+    private string filter = string.Empty;
+    
+    private int totalPages => (int)Math.Ceiling((double)totalCount / pageSize);
+    
+    [Inject]
+    private MinGo.Gitea.Application.Services.WorkflowService WorkflowService { get; set; } = default!;
+    
     [Inject]
     private NavigationManager NavigationManager { get; set; } = default!;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHistories();
+    }
+    
+    private async Task LoadHistories()
+    {
+        var result = await WorkflowService.GetWorkflowRunHistoriesAsync(page, pageSize, filter);
+        histories = result.Item1.ToList();
+        totalCount = result.Item2;
+    }
+    
+    private async Task ChangePage(int newPage)
+    {
+        if (newPage >= 1 && newPage <= totalPages)
+        {
+            page = newPage;
+            await LoadHistories();
+        }
+    }
 }

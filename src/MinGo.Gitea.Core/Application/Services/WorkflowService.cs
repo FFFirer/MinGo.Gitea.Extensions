@@ -1,6 +1,7 @@
 using MinGo.Gitea.Core.Interfaces;
 using MinGo.Gitea.Core.Models;
 using MinGo.Gitea.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace MinGo.Gitea.Application.Services;
 
@@ -85,6 +86,45 @@ public class WorkflowService
     public async Task<IEnumerable<WorkflowRun>> GetWorkflowRunsAsync(string owner, string repo)
     {
         return await _apiClient.GetWorkflowRunsAsync(owner, repo);
+    }
+
+    public async Task<(IEnumerable<WorkflowRunHistory>, int)> GetWorkflowRunHistoriesAsync(int page = 1, int pageSize = 10, string? filter = null)
+    {
+        if (_dbContext == null)
+        {
+            return (Enumerable.Empty<WorkflowRunHistory>(), 0);
+        }
+
+        var query = _dbContext.WorkflowRunHistories.AsQueryable();
+
+        if (!string.IsNullOrEmpty(filter))
+        {
+            query = query.Where(h => 
+                h.WorkflowName.Contains(filter) || 
+                h.Repo.Contains(filter) || 
+                h.Ref.Contains(filter) || 
+                h.Status.Contains(filter)
+            );
+        }
+
+        var totalCount = await query.CountAsync();
+        var histories = await query
+            .OrderByDescending(h => h.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (histories, totalCount);
+    }
+
+    public async Task<WorkflowRunHistory?> GetWorkflowRunHistoryByIdAsync(int id)
+    {
+        if (_dbContext == null)
+        {
+            return null;
+        }
+
+        return await _dbContext.WorkflowRunHistories.FirstOrDefaultAsync(h => h.Id == id);
     }
 
     internal async Task<string?> TriggerWorkflowAsync(string owner, string repo, object workflow, object @ref, Dictionary<string, string> inputs)
