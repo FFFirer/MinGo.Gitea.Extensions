@@ -42,7 +42,7 @@ public class WorkflowService
         return repositories.FirstOrDefault(r => r.FullName.Equals(fullName, StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task<WorkflowRun?> TriggerWorkflowAsync(string owner, string repo, Workflow workflow, Ref @ref, string triggerType, Dictionary<string, string>? inputs = null)
+    public async Task<WorkflowRunHistory?> TriggerWorkflowAsync(string owner, string repo, Workflow workflow, Ref @ref, string triggerType, Dictionary<string, string>? inputs = null)
     {
         await _apiClient.TriggerWorkflowAsync(owner, repo, workflow.Id, @ref.Name, inputs);
 
@@ -75,9 +75,11 @@ public class WorkflowService
 
             _dbContext.WorkflowRunHistories.Add(history);
             await _dbContext.SaveChangesAsync();
+
+            return history;
         }
 
-        return run;
+        return null;
     }
 
     public async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId)

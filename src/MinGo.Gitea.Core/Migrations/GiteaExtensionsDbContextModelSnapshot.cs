@@ -105,6 +105,9 @@ namespace MinGo.Gitea.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Owner")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -119,6 +122,9 @@ namespace MinGo.Gitea.Migrations
 
                     b.Property<int>("RunId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
                         .IsRequired()
