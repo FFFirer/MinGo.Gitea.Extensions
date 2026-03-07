@@ -6,12 +6,12 @@ namespace MinGo.Gitea.Infrastructure;
 
 public class GiteaApiClientFactory
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _factory;
     private readonly GiteaConfigService _configService;
 
-    public GiteaApiClientFactory(HttpClient httpClient, GiteaConfigService configService)
+    public GiteaApiClientFactory(IHttpClientFactory httpClient, GiteaConfigService configService)
     {
-        _httpClient = httpClient;
+        _factory = httpClient;
         _configService = configService;
     }
 
@@ -23,7 +23,7 @@ public class GiteaApiClientFactory
             throw new Exception("Gitea configuration not found. Please set up the configuration first.");
         }
 
-        return new GiteaApiClient(_httpClient, config);
+        return new GiteaApiClient(_factory, config);
     }
 
     public IGiteaApiClient Create()
@@ -34,7 +34,7 @@ public class GiteaApiClientFactory
             throw new Exception("Gitea configuration not found. Please set up the configuration first.");
         }
 
-        return new GiteaApiClient(_httpClient, config);
+        return new GiteaApiClient(_factory, config);
     }
 
     public IGiteaApiClient Create(GiteaConfig config)
@@ -44,6 +44,6 @@ public class GiteaApiClientFactory
             throw new ArgumentNullException(nameof(config));
         }
 
-        return new GiteaApiClient(_httpClient, config);
+        return new GiteaApiClient(_factory, config);
     }
 }

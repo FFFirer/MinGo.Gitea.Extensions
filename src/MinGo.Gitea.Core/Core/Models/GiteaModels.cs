@@ -17,7 +17,7 @@ public class Branch
 
 public class Commit
 {
-    public required string Id { get; set; }
+    public required string Sha { get; set; }
     public required string Url { get; set; }
 }
 
@@ -37,6 +37,7 @@ public class WorkflowRun
     public required string Conclusion { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
-    public required string Branch { get; set; }
+    public required string Ref { get; set; }
+    public required string CommitSha { get; set; }
 }
 

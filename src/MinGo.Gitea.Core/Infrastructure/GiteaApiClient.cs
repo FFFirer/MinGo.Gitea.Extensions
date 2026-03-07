@@ -1,6 +1,8 @@
 using MinGo.Gitea.Core.Interfaces;
 using MinGo.Gitea.Core.Models;
+
 using Newtonsoft.Json;
+
 using System.Net.Http;
 
 namespace MinGo.Gitea.Infrastructure;
@@ -10,19 +12,17 @@ public class GiteaApiClient : IGiteaApiClient
     private readonly HttpClient _httpClient;
     private readonly GiteaConfig _config;
 
-    public GiteaApiClient(HttpClient httpClient, GiteaConfig config)
+    public GiteaApiClient(IHttpClientFactory factory, GiteaConfig config)
     {
-        _httpClient = httpClient;
-        _config = config ?? throw new ArgumentNullException(nameof(config));
-        
-        if (string.IsNullOrEmpty(config.ServerUrl))
-        {
-            throw new ArgumentNullException(nameof(config.ServerUrl), "ServerUrl cannot be null or empty");
-        }
+        _httpClient = factory.CreateClient("GiteaApiClient");
+        _config = config;
     }
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string endpoint)
     {
+        ArgumentNullException.ThrowIfNull(_config.ServerUrl, $"{nameof(GiteaConfig)}:{nameof(GiteaConfig.ServerUrl)}");
+        ArgumentNullException.ThrowIfNull(_config.Token, $"{nameof(GiteaConfig)}:{nameof(GiteaConfig.Token)}");
+
         var uri = new Uri(new Uri(_config.ServerUrl), endpoint);
         var request = new HttpRequestMessage(method, uri);
         request.Headers.Add("Authorization", $"token {_config.Token}");
@@ -51,7 +51,7 @@ public class GiteaApiClient : IGiteaApiClient
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var repos = JsonConvert.DeserializeObject<List<GiteaRepository>>(content);
-        
+
         return repos?.Select(r => new Repository
         {
             Id = (int)r.Id,
@@ -69,16 +69,32 @@ public class GiteaApiClient : IGiteaApiClient
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var branches = JsonConvert.DeserializeObject<List<GiteaBranch>>(content);
-        
+
         return branches?.Select(b => new Branch
         {
             Name = b.Name,
             Commit = new Commit
             {
-                Id = b.Commit.Id,
+                Sha = b.Commit.Sha,
                 Url = b.Commit.Url
             }
         }) ?? Enumerable.Empty<Branch>();
+    }
+
+    public async Task<IEnumerable<Ref>> GetRefsAsync(string owner, string repo)
+    {
+        var request = CreateRequest(HttpMethod.Get, $"/api/v1/repos/{owner}/{repo}/git/refs");
+        var response = await _httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadAsStringAsync();
+        var refs = JsonConvert.DeserializeObject<List<GiteaRef>>(content);
+
+        return refs?.Select(r => new Ref
+        {
+            Name = r.Ref,
+            Type = r.Ref.StartsWith("refs/heads/") ? "branch" : "tag",
+            Commit = new() { Sha = r.Object.Sha, Url = r.Object.Url }
+        }) ?? Enumerable.Empty<Ref>();
     }
 
     public async Task<IEnumerable<Workflow>> GetWorkflowsAsync(string owner, string repo)
@@ -88,33 +104,29 @@ public class GiteaApiClient : IGiteaApiClient
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var result = JsonConvert.DeserializeObject<GiteaWorkflowListResponse>(content);
-        
-        return result?.Workflows.Select(w => new Workflow
+
+        return result?.workflows.Select(w => new Workflow
         {
-            Id = w.Id,
-            Name = w.Name,
-            Path = w.Path,
-            State = w.State
+            Id = w.id,
+            Name = w.name,
+            Path = w.path,
+            State = w.state
         }) ?? Enumerable.Empty<Workflow>();
     }
 
-    public async Task<WorkflowRun?> TriggerWorkflowAsync(string owner, string repo, string workflowId, string branch, Dictionary<string, string>? inputs = null)
+    public async Task TriggerWorkflowAsync(string owner, string repo, string workflowId, string @ref, Dictionary<string, string>? inputs = null)
     {
         var requestBody = new GiteaWorkflowDispatchRequest
         {
-            Ref = branch,
+            Ref = @ref,
             Inputs = inputs
         };
-        
+
         var content = new StringContent(JsonConvert.SerializeObject(requestBody), System.Text.Encoding.UTF8, "application/json");
         var request = CreateRequest(HttpMethod.Post, $"/api/v1/repos/{owner}/{repo}/actions/workflows/{workflowId}/dispatches");
         request.Content = content;
         var response = await _httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
-        
-        // Gitea returns 204 No Content on success, so we need to get the latest run
-        var runs = await GetWorkflowRunsAsync(owner, repo);
-        return runs.FirstOrDefault();
     }
 
     public async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId)
@@ -124,41 +136,80 @@ public class GiteaApiClient : IGiteaApiClient
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var run = JsonConvert.DeserializeObject<GiteaWorkflowRun>(content);
-        
+
         if (run == null)
         {
             return null;
         }
-        
+
         return new WorkflowRun
         {
-            Id = (int)run.Id,
-            Name = run.Name,
-            Status = run.Status,
-            Conclusion = run.Conclusion,
-            CreatedAt = DateTime.Parse(run.CreatedAt),
-            UpdatedAt = DateTime.Parse(run.UpdatedAt),
-            Branch = run.HeadBranch
+            Id = (int)run.id,
+            Name = run.display_title ?? string.Empty,
+            Status = run.status ?? string.Empty,
+            Conclusion = run.conclusion ?? string.Empty,
+            CreatedAt = run.started_at != null ? DateTime.Parse(run.started_at) : DateTime.MinValue,
+            UpdatedAt = run.completed_at != null ? DateTime.Parse(run.completed_at) : DateTime.MinValue,
+            Ref = run.head_branch ?? string.Empty,
+            CommitSha = run.head_sha ?? string.Empty
         };
     }
 
-    public async Task<IEnumerable<WorkflowRun>> GetWorkflowRunsAsync(string owner, string repo)
+    public async Task<IEnumerable<WorkflowRun>> GetWorkflowRunsAsync(string owner, string repo, int? page = null, int? limit = null, string? status = null, string? branch = null, string? @event = null, int? workflowId = null, int? actorId = null, string? created = null, string? headSha = null)
     {
-        var request = CreateRequest(HttpMethod.Get, $"/api/v1/repos/{owner}/{repo}/actions/runs");
+        var queryParams = new List<string>();
+        if (page.HasValue) queryParams.Add($"page={page}");
+        if (limit.HasValue) queryParams.Add($"limit={limit}");
+        if (!string.IsNullOrEmpty(status)) queryParams.Add($"status={Uri.EscapeDataString(status)}");
+        if (!string.IsNullOrEmpty(branch)) queryParams.Add($"branch={Uri.EscapeDataString(branch)}");
+        if (!string.IsNullOrEmpty(@event)) queryParams.Add($"event={Uri.EscapeDataString(@event)}");
+        if (workflowId.HasValue) queryParams.Add($"workflow_id={workflowId}");
+        if (actorId.HasValue) queryParams.Add($"actor_id={actorId}");
+        if (!string.IsNullOrEmpty(created)) queryParams.Add($"created={Uri.EscapeDataString(created)}");
+        if (!string.IsNullOrEmpty(headSha)) queryParams.Add($"head_sha={Uri.EscapeDataString(headSha)}");
+
+        var endpoint = $"/api/v1/repos/{owner}/{repo}/actions/runs";
+        if (queryParams.Count > 0)
+        {
+            endpoint += "?" + string.Join("&", queryParams);
+        }
+
+        var request = CreateRequest(HttpMethod.Get, endpoint);
         var response = await _httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var result = JsonConvert.DeserializeObject<GiteaWorkflowRunListResponse>(content);
-        
-        return result?.WorkflowRuns.Select(r => new WorkflowRun
+
+        return result?.workflow_runs?.Select(r => new WorkflowRun
         {
-            Id = (int)r.Id,
-            Name = r.Name,
-            Status = r.Status,
-            Conclusion = r.Conclusion,
-            CreatedAt = DateTime.Parse(r.CreatedAt),
-            UpdatedAt = DateTime.Parse(r.UpdatedAt),
-            Branch = r.HeadBranch
+            Id = (int)r.id,
+            Name = r.display_title ?? string.Empty,
+            Status = r.status ?? string.Empty,
+            Conclusion = r.conclusion ?? string.Empty,
+            CreatedAt = r.started_at != null ? DateTime.Parse(r.started_at) : DateTime.MinValue,
+            UpdatedAt = r.completed_at != null ? DateTime.Parse(r.completed_at) : DateTime.MinValue,
+            Ref = r.head_branch ?? string.Empty,
+            CommitSha = r.head_sha ?? string.Empty
         }) ?? Enumerable.Empty<WorkflowRun>();
+    }
+
+    public async Task<Commit?> GetCommitAsync(string owner, string repo, string @ref)
+    {
+        var request = CreateRequest(HttpMethod.Get, $"/api/v1/repos/{owner}/{repo}/commits/{@ref}");
+        var response = await _httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadAsStringAsync();
+        var commit = JsonConvert.DeserializeObject<GiteaCommit>(content);
+
+        if (commit == null)
+        {
+            return null;
+        }
+
+        return new Commit
+        {
+            Sha = commit.Sha,
+            Url = commit.Url
+        };
     }
 }

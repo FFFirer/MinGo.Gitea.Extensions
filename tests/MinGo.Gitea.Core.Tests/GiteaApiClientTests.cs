@@ -3,6 +3,7 @@ using MinGo.Gitea.Core.Interfaces;
 using MinGo.Gitea.Core.Models;
 using MinGo.Gitea.Infrastructure;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace MinGo.Gitea.Core.Tests;
@@ -22,14 +23,19 @@ public class GiteaApiClientTests
     public GiteaApiClientTests()
     {
         // Initialize fields with default values
-        _httpClient = new HttpClient();
+        var services = new ServiceCollection();
+        services.AddHttpClient();
+        var serviceProvider = services.BuildServiceProvider();
+        var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+        
+        _httpClient = httpClientFactory.CreateClient();
         _config = new GiteaConfig
         {
             ServerUrl = "https://gitea.example.com",
             Token = "test-token",
             Username = "test-user"
         };
-        _client = new GiteaApiClient(_httpClient, _config);
+        _client = new GiteaApiClient(httpClientFactory, _config);
 
         // Skip initialization if tests are not enabled
         if (!IsGiteaApiTestEnabled)
@@ -53,8 +59,8 @@ public class GiteaApiClientTests
         };
 
         // Create actual HttpClient
-        _httpClient = new HttpClient();
-        _client = new GiteaApiClient(_httpClient, _config);
+        _httpClient = httpClientFactory.CreateClient();
+        _client = new GiteaApiClient(httpClientFactory, _config);
     }
 
     [Fact]
@@ -112,7 +118,7 @@ public class GiteaApiClientTests
         Console.WriteLine($"Branches for {testRepo.FullName}:");
         foreach (var branch in result)
         {
-            Console.WriteLine($"- {branch.Name} (SHA: {branch.Commit.Id})");
+            Console.WriteLine($"- {branch.Name} (SHA: {branch.Commit.Sha})");
         }
     }
 

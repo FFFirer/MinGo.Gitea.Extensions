@@ -6,7 +6,7 @@ namespace MinGo.Gitea.Application.Services;
 
 public class WorkflowService
 {
-    private readonly IGiteaApiClient _apiClient;
+    public readonly IGiteaApiClient _apiClient;
     private readonly GiteaExtensionsDbContext? _dbContext;
 
     public WorkflowService(IGiteaApiClient apiClient, GiteaExtensionsDbContext? dbContext = null)
@@ -25,6 +25,11 @@ public class WorkflowService
         return await _apiClient.GetBranchesAsync(owner, repo);
     }
 
+    public async Task<IEnumerable<Ref>> GetRefsAsync(string owner, string repo)
+    {
+        return await _apiClient.GetRefsAsync(owner, repo);
+    }
+
     public async Task<IEnumerable<Workflow>> GetWorkflowsAsync(string owner, string repo)
     {
         return await _apiClient.GetWorkflowsAsync(owner, repo);
@@ -36,10 +41,16 @@ public class WorkflowService
         return repositories.FirstOrDefault(r => r.FullName.Equals(fullName, StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task<WorkflowRun?> TriggerWorkflowAsync(string owner, string repo, string workflowId, string branch, Dictionary<string, string>? inputs = null)
+    public async Task<WorkflowRun?> TriggerWorkflowAsync(string owner, string repo, Workflow workflow, Ref @ref, string triggerType, Dictionary<string, string>? inputs = null)
     {
-        var run = await _apiClient.TriggerWorkflowAsync(owner, repo, workflowId, branch, inputs);
-        
+        await _apiClient.TriggerWorkflowAsync(owner, repo, workflow.Id, @ref.Name, inputs);
+
+        await Task.Delay(TimeSpan.FromSeconds(5));
+
+        // 获取最新的工作流运行记录
+        var runs = await _apiClient.GetWorkflowRunsAsync(owner, repo, headSha: @ref.CommitSha, @event: "workflow_dispatch", page: 1, limit: 1);
+        var run = runs.FirstOrDefault();
+
         // 记录执行历史
         if (_dbContext != null && run != null)
         {
@@ -47,21 +58,22 @@ public class WorkflowService
             {
                 Owner = owner,
                 Repo = repo,
-                WorkflowId = workflowId,
-                WorkflowName = run.Name,
-                Branch = branch,
+                WorkflowId = workflow.Id,
+                WorkflowName = workflow.Name,
+                Ref = @ref.Name,
+                CommitSha = @ref.CommitSha,
                 RunId = run.Id,
                 Status = run.Status,
                 Conclusion = run.Conclusion,
                 CreatedAt = run.CreatedAt,
                 UpdatedAt = run.UpdatedAt,
-                TriggerType = "手动触发"
+                TriggerType = triggerType,
             };
-            
+
             _dbContext.WorkflowRunHistories.Add(history);
             await _dbContext.SaveChangesAsync();
         }
-        
+
         return run;
     }
 
@@ -73,5 +85,10 @@ public class WorkflowService
     public async Task<IEnumerable<WorkflowRun>> GetWorkflowRunsAsync(string owner, string repo)
     {
         return await _apiClient.GetWorkflowRunsAsync(owner, repo);
+    }
+
+    internal async Task<string?> TriggerWorkflowAsync(string owner, string repo, object workflow, object @ref, Dictionary<string, string> inputs)
+    {
+        throw new NotImplementedException();
     }
 }

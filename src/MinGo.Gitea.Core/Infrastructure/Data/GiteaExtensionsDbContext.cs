@@ -25,12 +25,34 @@ public class GiteaExtensionsDbContext : DbContext
             v => JsonConvert.DeserializeObject<Dictionary<string, string>>(v ?? "{}") ?? new Dictionary<string, string>()
         );
         
+        var workflowConverter = new ValueConverter<MinGo.Gitea.Core.Models.Workflow, string>(
+            v => JsonConvert.SerializeObject(v),
+            v => JsonConvert.DeserializeObject<MinGo.Gitea.Core.Models.Workflow>(v) ?? new MinGo.Gitea.Core.Models.Workflow { Id = "", Name = "", Path = "", State = "" }
+        );
+        
+        var refConverter = new ValueConverter<MinGo.Gitea.Core.Models.Ref, string>(
+            v => JsonConvert.SerializeObject(v),
+            v => JsonConvert.DeserializeObject<MinGo.Gitea.Core.Models.Ref>(v) ?? new MinGo.Gitea.Core.Models.Ref { Name = "", Type = "branch", Commit = new MinGo.Gitea.Core.Models.Commit { Sha = "", Url = "" } }
+        );
+        
         modelBuilder.Entity<ScheduledTrigger>()
             .HasKey(t => t.Id);
         
         modelBuilder.Entity<ScheduledTrigger>()
             .Property(t => t.Inputs)
             .HasConversion(jsonConverter)
+            .HasColumnType("TEXT")
+            .IsRequired();
+        
+        modelBuilder.Entity<ScheduledTrigger>()
+            .Property(t => t.Workflow)
+            .HasConversion(workflowConverter)
+            .HasColumnType("TEXT")
+            .IsRequired();
+        
+        modelBuilder.Entity<ScheduledTrigger>()
+            .Property(t => t.Ref)
+            .HasConversion(refConverter)
             .HasColumnType("TEXT")
             .IsRequired();
         

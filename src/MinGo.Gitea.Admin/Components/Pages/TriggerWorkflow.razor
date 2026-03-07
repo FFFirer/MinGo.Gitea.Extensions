@@ -4,27 +4,6 @@
 
 <h1 class="text-2xl font-semibold text-gray-800 mb-6">手动触发工作流执行</h1>
 
-@* <Card Title="执行步骤">
-    <div class="flex flex-wrap items-center gap-4">
-        <div class="flex items-center">
-            <div class="w-8 h-8 rounded-full @(CurrentStep >= 1 ? "bg-blue-600" : "bg-gray-300") text-white flex items-center justify-center mr-2">1</div>
-            <span class="text-gray-800">选择仓库</span>
-        </div>
-        <div class="flex items-center">
-            <div class="w-8 h-8 rounded-full @(CurrentStep >= 2 ? "bg-blue-600" : "bg-gray-300") text-white flex items-center justify-center mr-2">2</div>
-            <span class="text-gray-800">选择工作流</span>
-        </div>
-        <div class="flex items-center">
-            <div class="w-8 h-8 rounded-full @(CurrentStep >= 3 ? "bg-blue-600" : "bg-gray-300") text-white flex items-center justify-center mr-2">3</div>
-            <span class="text-gray-800">选择分支</span>
-        </div>
-        <div class="flex items-center">
-            <div class="w-8 h-8 rounded-full @(CurrentStep >= 4 ? "bg-blue-600" : "bg-gray-300") text-white flex items-center justify-center mr-2">4</div>
-            <span class="text-gray-800">触发工作流</span>
-        </div>
-    </div>
-</Card> *@
-
 <Steps CurrentStep="CurrentStep" />
 
 @* 步骤1：选择仓库 *@
@@ -102,14 +81,14 @@
     </Card>
 }
 
-@* 步骤3：选择分支 *@
+@* 步骤3：选择引用 *@
 @if (CurrentStep == 3)
 {
-    <Card Title="选择分支">
+    <Card Title="选择引用">
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2" for="branch-select">分支</label>
+            <label class="block text-sm font-medium text-gray-800 mb-2" for="ref-select">引用（分支或标签）</label>
             <div class="relative">
-                @if (IsLoadingBranches)
+                @if (IsLoadingRefs)
                 {
                     <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-10">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -120,11 +99,11 @@
                 }
                 else
                 {
-                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="branch-select" @bind="SelectedBranch">
-                        <option value="">请选择分支</option>
-                        @foreach (var branch in Branches)
+                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="ref-select" @bind="SelectedRef">
+                        <option value="">请选择引用</option>
+                        @foreach (var @ref in Refs)
                         {
-                            <option value="@branch.Name">@branch.Name</option>
+                            <option value="@(@ref.Name)">@(@ref.Type == "branch" ? "分支: " : "标签: ")@(@ref.Name.Split('/')[2])</option>
                         }
                     </select>
                 }
@@ -134,7 +113,7 @@
             <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep">
                 上一步
             </button>
-            <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="NextStep" disabled="@(string.IsNullOrEmpty(SelectedBranch) || IsLoadingBranches)">
+            <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="NextStep" disabled="@(string.IsNullOrEmpty(SelectedRef) || IsLoadingRefs)">
                 下一步
             </button>
         </div>
@@ -154,8 +133,8 @@
             <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedWorkflowName</div>
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2">分支</label>
-            <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedBranch</div>
+            <label class="block text-sm font-medium text-gray-800 mb-2">引用</label>
+            <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedRef</div>
         </div>
         <div class="mt-4 flex justify-start gap-2">
             <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep">
@@ -182,16 +161,16 @@
     }
     private string SelectedWorkflowId { get; set; } = "";
     private string SelectedWorkflowName { get; set; } = "";
-    private string SelectedBranch { get; set; } = "";
+    private string SelectedRef { get; set; } = "";
     private string ToastMessage { get; set; } = "";
     private Toast.ToastType ToastType { get; set; } = Toast.ToastType.Success;
     private bool ShowToast { get; set; } = false;
     private List<MinGo.Gitea.Core.Models.Repository> Repositories { get; set; } = new List<MinGo.Gitea.Core.Models.Repository>();
     private List<MinGo.Gitea.Core.Models.Workflow> Workflows { get; set; } = new List<MinGo.Gitea.Core.Models.Workflow>();
-    private List<MinGo.Gitea.Core.Models.Branch> Branches { get; set; } = new List<MinGo.Gitea.Core.Models.Branch>();
+    private List<MinGo.Gitea.Core.Models.Ref> Refs { get; set; } = new List<MinGo.Gitea.Core.Models.Ref>();
     private bool IsLoadingRepos { get; set; } = false;
     private bool IsLoadingWorkflows { get; set; } = false;
-    private bool IsLoadingBranches { get; set; } = false;
+    private bool IsLoadingRefs { get; set; } = false;
     private bool IsTriggering { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
@@ -221,9 +200,9 @@
     {
         SelectedWorkflowId = "";
         SelectedWorkflowName = "";
-        SelectedBranch = "";
+        SelectedRef = "";
         Workflows.Clear();
-        Branches.Clear();
+        Refs.Clear();
         
         if (SelectedRepoId > 0)
         {
@@ -256,8 +235,8 @@
     private async Task SelectWorkflow(string workflowId)
     {
         SelectedWorkflowId = workflowId;
-        SelectedBranch = "";
-        Branches.Clear();
+        SelectedRef = "";
+        Refs.Clear();
         
         // 获取工作流名称
         var workflow = Workflows.FirstOrDefault(w => w.Id.ToString() == workflowId);
@@ -266,31 +245,31 @@
             SelectedWorkflowName = workflow.Name;
         }
         
-        // 加载分支
-        await LoadBranchesAsync();
+        // 加载引用
+        await LoadRefsAsync();
     }
 
-    private async Task LoadBranchesAsync()
+    private async Task LoadRefsAsync()
     {
         if (!(SelectedRepoId > 0)) return;
         
-        IsLoadingBranches = true;
+        IsLoadingRefs = true;
         try
         {
             var repo = ParseRepo(SelectedRepoId);
             if(repo is null){
                 return;
             }
-            var branches = await WorkflowService.GetBranchesAsync(repo.Owner, repo.Name);
-            Branches = branches.ToList();
+            var refs = await WorkflowService.GetRefsAsync(repo.Owner, repo.Name);
+            Refs = refs.ToList();
         }
         catch (Exception ex)
         {
-            ShowErrorToast($"加载分支失败: {ex.Message}");
+            ShowErrorToast($"加载引用失败: {ex.Message}");
         }
         finally
         {
-            IsLoadingBranches = false;
+            IsLoadingRefs = false;
         }
     }
 
@@ -314,7 +293,7 @@
 
     private async Task Start()
     {
-        if (!(SelectedRepoId > 0) || string.IsNullOrEmpty(SelectedWorkflowId) || string.IsNullOrEmpty(SelectedBranch))
+        if (!(SelectedRepoId > 0) || string.IsNullOrEmpty(SelectedWorkflowId) || string.IsNullOrEmpty(SelectedRef))
         {
             ShowErrorToast("请完成所有选择步骤");
             return;
@@ -327,8 +306,9 @@
             if(repo is null){
                 return;
             }
-            var branch = Branches.FirstOrDefault(b => b.Name == SelectedBranch)!;
-            var workflowRun = await WorkflowService.TriggerWorkflowAsync(repo.Owner, repo.Name, SelectedWorkflowId, branch.Commit.Id);
+            var selectedWorkflow = Workflows.First(x => x.Id == SelectedWorkflowId);
+            var selectedRef = Refs.First(x => x.Name == SelectedRef);
+            var workflowRun = await WorkflowService.TriggerWorkflowAsync(repo.Owner, repo.Name, selectedWorkflow, selectedRef, "手动触发");
             if (workflowRun != null)
             {
                 ShowSuccessToast("工作流触发成功");

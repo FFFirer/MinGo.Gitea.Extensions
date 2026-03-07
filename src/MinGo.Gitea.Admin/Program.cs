@@ -24,7 +24,7 @@ builder.Services.AddHttpClient();
 
 // 配置数据库
 builder.Services.AddDbContext<GiteaExtensionsDbContext>(options =>
-    options.UseSqlite("Data Source=gitea_extensions.db"));
+    options.UseSqlite("Data Source=gitea_extensions.db", s => s.MigrationsAssembly("MinGo.Gitea.Core")));
 
 // 注册 Gitea 配置服务
 builder.Services.AddScoped<GiteaConfigService>();
@@ -65,7 +65,16 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<GiteaExtensionsDbContext>();
-        dbContext.Database.EnsureCreated();
+        if (app.Environment.IsDevelopment())
+        {
+            // 开发环境自动应用迁移
+            dbContext.Database.Migrate();
+        }
+        else
+        {
+            // 生产环境仅确保数据库存在
+            dbContext.Database.EnsureCreated();
+        }
     }
     catch (Exception ex)
     {

@@ -7,7 +7,8 @@ public class WorkflowRunHistory
     public required string Repo { get; set; }
     public required string WorkflowId { get; set; }
     public required string WorkflowName { get; set; }
-    public required string Branch { get; set; }
+    public required string Ref { get; set; }
+    public required string CommitSha { get; set; }
     public int RunId { get; set; }
     public required string Status { get; set; }
     public required string Conclusion { get; set; }

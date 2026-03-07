@@ -35,8 +35,8 @@ public class ScheduledTriggerService
             {
                 existing.Owner = trigger.Owner;
                 existing.Repo = trigger.Repo;
-                existing.WorkflowId = trigger.WorkflowId;
-                existing.Branch = trigger.Branch;
+                existing.Workflow = trigger.Workflow;
+                existing.Ref = trigger.Ref;
                 existing.CronExpression = trigger.CronExpression;
                 existing.Name = trigger.Name;
                 existing.Inputs = trigger.Inputs;
@@ -113,34 +113,13 @@ public class ScheduledTriggerService
 
     private async Task ExecuteTriggerAsync(ScheduledTrigger trigger)
     {
-        var run = await _workflowService.TriggerWorkflowAsync(
+        await _workflowService.TriggerWorkflowAsync(
             trigger.Owner,
             trigger.Repo,
-            trigger.WorkflowId,
-            trigger.Branch,
+            trigger.Workflow,
+            trigger.Ref,
+            "定时触发",
             trigger.Inputs
         );
-        
-        // 记录执行历史
-        var history = new WorkflowRunHistory
-        {
-            Owner = trigger.Owner,
-            Repo = trigger.Repo,
-            WorkflowId = trigger.WorkflowId,
-            WorkflowName = run?.Name ?? "",
-            Branch = trigger.Branch,
-            RunId = run?.Id ?? 0,
-            Status = run?.Status ?? "",
-            Conclusion = run?.Conclusion ?? "",
-            CreatedAt = run?.CreatedAt ?? DateTime.UtcNow,
-            UpdatedAt = run?.UpdatedAt ?? DateTime.UtcNow,
-            TriggerType = "定时触发"
-        };
-        
-        if (_dbContext != null)
-        {
-            _dbContext.WorkflowRunHistories.Add(history);
-            await _dbContext.SaveChangesAsync();
-        }
     }
 }
