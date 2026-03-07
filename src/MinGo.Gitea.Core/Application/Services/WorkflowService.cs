@@ -68,6 +68,8 @@ public class WorkflowService
                 Conclusion = run.Conclusion,
                 CreatedAt = run.CreatedAt,
                 UpdatedAt = run.UpdatedAt,
+                StartedAt = run.CreatedAt, // 开始时间
+                EndedAt = run.Status == "completed" ? run.UpdatedAt : null, // 结束时间
                 TriggerType = triggerType,
             };
 

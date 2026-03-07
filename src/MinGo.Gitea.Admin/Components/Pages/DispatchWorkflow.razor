@@ -313,7 +313,7 @@
             {
                 ShowSuccessToast("工作流触发成功");
                 // 跳转到工作流详情页面
-                NavigationManager.NavigateTo($"/workflow-detail?repo={SelectedRepoId}&runId={workflowRun.Id}");
+                NavigationManager.NavigateTo($"/history/{workflowRun.Id}");
             }
             else
             {

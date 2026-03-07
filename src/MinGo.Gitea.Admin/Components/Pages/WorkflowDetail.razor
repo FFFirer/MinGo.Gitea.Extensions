@@ -28,12 +28,20 @@ else
             <div class="w-full px-3 py-2 border border-gray-300 rounded-md @GetStatusClass(history.Status) cursor-default">@history.Status</div>
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2">开始时间</label>
+            <label class="block text-sm font-medium text-gray-800 mb-2">创建时间</label>
             <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@history.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</div>
         </div>
         <div class="mb-4">
             <label class="block text-sm font-medium text-gray-800 mb-2">更新时间</label>
             <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@history.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss")</div>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-800 mb-2">工作流开始执行时间</label>
+            <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@(history.StartedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "")</div>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-800 mb-2">工作流结束执行时间</label>
+            <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@(history.EndedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "")</div>
         </div>
         <div class="mb-4">
             <label class="block text-sm font-medium text-gray-800 mb-2">触发类型</label>
