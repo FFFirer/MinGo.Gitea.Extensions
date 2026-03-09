@@ -82,7 +82,7 @@ public class WorkflowService
         return null;
     }
 
-    public async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId)
+    public virtual async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId)
     {
         return await _apiClient.GetWorkflowRunAsync(owner, repo, runId);
     }

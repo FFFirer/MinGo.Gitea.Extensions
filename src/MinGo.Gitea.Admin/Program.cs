@@ -6,6 +6,10 @@ using MinGo.Gitea.Infrastructure.Data;
 using MinGo.Gitea.Admin.Components;
 using Serilog;
 using Vite.AspNetCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +61,12 @@ builder.Services.AddScoped<MinGo.Gitea.Core.Interfaces.IGiteaApiClient>(provider
 // 注册工作流服务
 builder.Services.AddScoped<WorkflowService>();
 
+// 注册工作流状态更新服务
+builder.Services.AddScoped<WorkflowStatusUpdaterService>();
+
+// 添加定时任务服务
+builder.Services.AddHostedService<WorkflowStatusUpdateBackgroundService>();
+
 var app = builder.Build();
 
 // 确保数据库迁移
@@ -105,3 +115,44 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+public class WorkflowStatusUpdateBackgroundService : BackgroundService
+{
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<WorkflowStatusUpdateBackgroundService> _logger;
+    private readonly int _updateIntervalMinutes = 1; // 默认检查间隔为1分钟
+
+    public WorkflowStatusUpdateBackgroundService(IServiceProvider serviceProvider, ILogger<WorkflowStatusUpdateBackgroundService> logger)
+    {
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Workflow status update background service started");
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                _logger.LogDebug("Running workflow status update");
+
+                using (var scope = _serviceProvider.CreateScope())
+                {
+                    var updaterService = scope.ServiceProvider.GetRequiredService<WorkflowStatusUpdaterService>();
+                    await updaterService.UpdateWorkflowStatusesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in workflow status update background service");
+            }
+
+            // 等待指定的间隔时间
+            await Task.Delay(TimeSpan.FromMinutes(_updateIntervalMinutes), stoppingToken);
+        }
+
+        _logger.LogInformation("Workflow status update background service stopped");
+    }
+}
