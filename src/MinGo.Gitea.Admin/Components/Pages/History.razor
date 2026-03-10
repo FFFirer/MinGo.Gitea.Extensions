@@ -15,11 +15,13 @@
         <table class="w-full border-collapse">
             <thead>
                 <tr class="border-b border-gray-200">
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">历史记录Id</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">工作流</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">仓库</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">分支</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">状态</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">开始时间</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">执行时间</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">操作</th>
                 </tr>
             </thead>
@@ -29,6 +31,7 @@
                     @foreach (var history in histories)
                     {
                         <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-sm text-gray-800">@history.Id</td>
                             <td class="px-4 py-3 text-sm text-gray-800">@history.WorkflowName</td>
                             <td class="px-4 py-3 text-sm text-gray-500">@history.Repo</td>
                             <td class="px-4 py-3 text-sm text-gray-500">@history.Ref</td>
@@ -36,6 +39,7 @@
                                 <StatusBadge Status="@history.Status.ToLower()" />
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500">@history.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">@GetExecutionTime(history)</td>
                             <td class="px-4 py-3">
                                 <NavLink class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" href="@($"/history/{history.Id}")">查看</NavLink>
                             </td>
@@ -45,7 +49,7 @@
                 else
                 {
                     <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">暂无执行记录</td>
+                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">暂无执行记录</td>
                     </tr>
                 }
             </tbody>
@@ -103,5 +107,26 @@
             page = newPage;
             await LoadHistories();
         }
+    }
+    
+    /// <summary>
+    /// 计算工作流执行时间
+    /// </summary>
+    /// <param name="history">工作流执行历史</param>
+    /// <returns>执行时间字符串</returns>
+    private string GetExecutionTime(MinGo.Gitea.Core.Models.WorkflowRunHistory history)
+    {
+        if (!history.StartedAt.HasValue)
+        {
+            return "未知";
+        }
+        
+        if (!history.EndedAt.HasValue)
+        {
+            return "运行中";
+        }
+        
+        var duration = history.EndedAt.Value - history.StartedAt.Value;
+        return $"{duration.Minutes}m {duration.Seconds}s";
     }
 }
