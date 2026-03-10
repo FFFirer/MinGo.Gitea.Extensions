@@ -12,5 +12,5 @@ public interface IGiteaApiClient
     Task TriggerWorkflowAsync(string owner, string repo, string workflowId, string @ref, Dictionary<string, string>? inputs = null);
     Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId);
     Task<IEnumerable<WorkflowRun>> GetWorkflowRunsAsync(string owner, string repo, int? page = null, int? limit = null, string? status = null, string? branch = null, string? @event = null, int? workflowId = null, int? actorId = null, string? created = null, string? headSha = null);
-    Task<Commit?> GetCommitAsync(string owner, string repo, string @ref);
+    Task<Ref?> GetRefAsync(string owner, string repo, string @ref);
 }

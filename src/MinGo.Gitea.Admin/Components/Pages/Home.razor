@@ -57,7 +57,8 @@ else
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-500">@run.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
                                 <td class="px-4 py-3">
-                                    <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="() => ViewRunDetails(run.Id)">查看</button>
+                                    <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors mr-2" @onclick="() => ViewRunDetails(run.Id)">查看</button>
+                                    <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="() => ReRunWorkflow(run)">再执行一次</button>
                                 </td>
                             </tr>
                         }
@@ -140,7 +141,7 @@ else
         return status switch
         {
             "running" => "running",
-            "completed" => "success",
+            "completed" => "completed",
             "failed" => "failed",
             "canceled" => "canceled",
             _ => status.ToLower()
@@ -150,5 +151,51 @@ else
     private void ViewRunDetails(int id)
     {
         NavigationManager.NavigateTo($"/history/{id}");
+    }
+
+    /// <summary>
+    /// 再执行一次工作流
+    /// </summary>
+    private async Task ReRunWorkflow(WorkflowRunHistory run)
+    {
+        try
+        {
+            isLoading = true;
+
+            // 创建工作流对象
+            var workflow = new Core.Models.Workflow
+            {
+                Id = run.WorkflowId,
+                Name = run.WorkflowName,
+                Path = "", // 空值占位
+                State = "active" // 假设工作流状态为活跃
+            };
+
+            // 获取最新的 commit 信息
+            var @ref = await WorkflowService.GetRefAsync(run.Owner, run.Repo, run.Ref);
+            if (@ref == null || @ref.Commit == null)
+            {
+                throw new Exception($"无法获取引用 {run.Ref} 的最新提交信息");
+            }
+
+            // 触发工作流
+            var newHistory = await WorkflowService.TriggerWorkflowAsync(
+                run.Owner,
+                run.Repo,
+                workflow,
+                @ref,
+                "手动触发"
+            );
+
+            // 跳转到新的工作流执行详情页
+            if (newHistory != null)
+            {
+                NavigationManager.NavigateTo($"/history/{newHistory.Id}");
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 }

@@ -20,7 +20,7 @@ else
             <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@history.Owner/@history.Repo</div>
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2">分支</label>
+            <label class="block text-sm font-medium text-gray-800 mb-2">Git Ref</label>
             <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@history.Ref</div>
         </div>
         <div class="mb-4">
@@ -55,7 +55,22 @@ else
             <label class="block text-sm font-medium text-gray-800 mb-2">Commit SHA</label>
             <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@history.CommitSha</div>
         </div>
-        <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="BackToHistory">返回历史</button>
+        <div class="flex space-x-4">
+            <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="ReRunWorkflow" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <div class="flex items-center">
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        执行中...
+                    </div>
+                }
+                else
+                {
+                    @("再执行一次")
+                }
+            </button>
+            <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="BackToHistory" disabled="@isLoading">返回历史</button>
+        </div>
     </Card>
 }
 
@@ -64,6 +79,7 @@ else
     public int Id { get; set; }
 
     private WorkflowRunHistory? history;
+    private bool isLoading = false;
 
     [Inject]
     private WorkflowService WorkflowService { get; set; } = default!;
@@ -91,5 +107,69 @@ else
     private async Task BackToHistory()
     {
         NavigationManager.NavigateTo("/history");
+    }
+
+    /// <summary>
+    /// 再执行一次工作流
+    /// </summary>
+    private async Task ReRunWorkflow()
+    {
+        if (history == null)
+        {
+            return;
+        }
+
+        try
+        {
+            isLoading = true;
+
+            // 创建工作流对象
+            var workflow = new Core.Models.Workflow
+            {
+                Id = history.WorkflowId,
+                Name = history.WorkflowName,
+                Path = "", // 空值占位
+                State = "active" // 假设工作流状态为活跃
+            };
+
+            // 获取最新的 ref 信息
+            var refInfo = await WorkflowService.GetRefAsync(history.Owner, history.Repo, history.Ref);
+            if (refInfo == null || refInfo.Commit == null)
+            {
+                throw new Exception($"无法获取引用 {history.Ref} 的最新提交信息");
+            }
+
+            // 创建Ref对象
+            var @ref = new Core.Models.Ref
+            {
+                Name = history.Ref,
+                Type = history.Ref.StartsWith("refs/heads/") ? "branch" : history.Ref.StartsWith("refs/tags/") ? "tag" : "unknown",
+                Commit = refInfo.Commit
+            };
+
+            // 触发工作流
+            var newHistory = await WorkflowService.TriggerWorkflowAsync(
+                history.Owner,
+                history.Repo,
+                workflow,
+                @ref,
+                "手动触发"
+            );
+
+            // 跳转到新的工作流执行详情页
+            if (newHistory != null)
+            {
+                NavigationManager.NavigateTo($"/history/{newHistory.Id}");
+            }
+            else
+            {
+                // 如果创建失败，跳转到历史页面
+                NavigationManager.NavigateTo("/history");
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 }

@@ -42,6 +42,11 @@ public class WorkflowService
         return repositories.FirstOrDefault(r => r.FullName.Equals(fullName, StringComparison.OrdinalIgnoreCase));
     }
 
+    public async Task<Ref?> GetRefAsync(string owner, string repo, string @ref)
+    {
+        return await _apiClient.GetRefAsync(owner, repo, @ref);
+    }
+
     public async Task<WorkflowRunHistory?> TriggerWorkflowAsync(string owner, string repo, Workflow workflow, Ref @ref, string triggerType, Dictionary<string, string>? inputs = null)
     {
         await _apiClient.TriggerWorkflowAsync(owner, repo, workflow.Id, @ref.Name, inputs);

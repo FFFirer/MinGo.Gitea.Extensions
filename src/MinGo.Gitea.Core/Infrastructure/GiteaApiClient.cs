@@ -190,26 +190,33 @@ public class GiteaApiClient : IGiteaApiClient
             UpdatedAt = r.completed_at != null ? DateTime.Parse(r.completed_at) : DateTime.MinValue,
             Ref = r.head_branch ?? string.Empty,
             CommitSha = r.head_sha ?? string.Empty
-        }) ?? Enumerable.Empty<WorkflowRun>();
+        }) ?? [];
     }
 
-    public async Task<Commit?> GetCommitAsync(string owner, string repo, string @ref)
+    public async Task<Ref?> GetRefAsync(string owner, string repo, string @ref)
     {
-        var request = CreateRequest(HttpMethod.Get, $"/api/v1/repos/{owner}/{repo}/commits/{@ref}");
+        if (@ref.StartsWith("refs/"))
+        {
+            @ref = @ref["refs/".Length..];
+        }
+        var request = CreateRequest(HttpMethod.Get, $"/api/v1/repos/{owner}/{repo}/git/refs/{@ref}");
         var response = await _httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        var commit = JsonConvert.DeserializeObject<GiteaCommit>(content);
+        var giteaRefs = JsonConvert.DeserializeObject<GiteaRef[]>(content);
 
-        if (commit == null)
+        if (giteaRefs == null || giteaRefs.Length == 0)
         {
             return null;
         }
 
-        return new Commit
+        var giteaRef = giteaRefs.First();
+
+        return new Ref
         {
-            Sha = commit.Sha,
-            Url = commit.Url
+            Type = giteaRef.Ref.StartsWith("/refs/heads") ? "branch" : "tag",
+            Name = giteaRef.Ref,
+            Commit = new() { Sha = giteaRef.Object.Sha, Url = giteaRef.Object.Url }
         };
     }
 }
