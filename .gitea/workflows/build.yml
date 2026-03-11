@@ -35,7 +35,8 @@ jobs:
           if [ "${{ github.event_name }}" == "release" ]; then
             VERSION="${GITHUB_REF#refs/*/}"
           else
-            VERSION="dev-${GITHUB_SHA:0:7}"
+            TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+            VERSION="dev-${GITHUB_SHA:0:7}-${TIMESTAMP}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
