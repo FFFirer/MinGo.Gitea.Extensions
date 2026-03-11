@@ -20,6 +20,7 @@
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">仓库</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">分支</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">状态</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">结果</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">开始时间</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">执行时间</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">操作</th>
@@ -38,6 +39,7 @@
                             <td class="px-4 py-3">
                                 <StatusBadge Status="@history.Status.ToLower()" />
                             </td>
+                            <td class="px-4 py-3 text-sm text-gray-500">@(string.IsNullOrEmpty(history.Conclusion) ? "-" : history.Conclusion)</td>
                             <td class="px-4 py-3 text-sm text-gray-500">@history.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
                             <td class="px-4 py-3 text-sm text-gray-500">@GetExecutionTime(history)</td>
                             <td class="px-4 py-3">
@@ -49,7 +51,7 @@
                 else
                 {
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">暂无执行记录</td>
+                        <td colspan="9" class="px-4 py-8 text-center text-gray-500">暂无执行记录</td>
                     </tr>
                 }
             </tbody>

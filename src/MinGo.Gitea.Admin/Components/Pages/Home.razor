@@ -40,7 +40,9 @@ else
                         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">工作流</th>
                         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">仓库</th>
                         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">状态</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">结果</th>
                         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">开始时间</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">执行时间</th>
                         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">操作</th>
                     </tr>
                 </thead>
@@ -55,7 +57,9 @@ else
                                 <td class="px-4 py-3">
                                     <StatusBadge Status="@GetStatusType(run.Status)" />
                                 </td>
+                                <td class="px-4 py-3 text-sm text-gray-500">@(string.IsNullOrEmpty(run.Conclusion) ? "-" : run.Conclusion)</td>
                                 <td class="px-4 py-3 text-sm text-gray-500">@run.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td class="px-4 py-3 text-sm text-gray-500">@GetExecutionTime(run)</td>
                                 <td class="px-4 py-3">
                                     <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors mr-2" @onclick="() => ViewRunDetails(run.Id)">查看</button>
                                     <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="() => ReRunWorkflow(run)">再执行一次</button>
@@ -66,7 +70,7 @@ else
                     else
                     {
                         <tr>
-                            <td colspan="5" class="px-4 py-6 text-center text-gray-500">暂无执行记录</td>
+                            <td colspan="7" class="px-4 py-6 text-center text-gray-500">暂无执行记录</td>
                         </tr>
                     }
                 </tbody>
@@ -146,6 +150,27 @@ else
             "canceled" => "canceled",
             _ => status.ToLower()
         };
+    }
+
+    /// <summary>
+    /// 计算工作流执行时间
+    /// </summary>
+    /// <param name="run">工作流执行历史</param>
+    /// <returns>执行时间字符串</returns>
+    private string GetExecutionTime(WorkflowRunHistory run)
+    {
+        if (!run.StartedAt.HasValue)
+        {
+            return "未知";
+        }
+        
+        if (!run.EndedAt.HasValue)
+        {
+            return "运行中";
+        }
+        
+        var duration = run.EndedAt.Value - run.StartedAt.Value;
+        return $"{duration.Minutes}m {duration.Seconds}s";
     }
 
     private void ViewRunDetails(int id)
