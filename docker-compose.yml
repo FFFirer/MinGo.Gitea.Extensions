@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  gitea-extensions-admin:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_ENVIRONMENT=Production
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

@@ -10,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,8 +28,11 @@ builder.Services.AddRazorComponents()
 builder.Services.AddHttpClient();
 
 // 配置数据库
+var dataDirectory = Path.Combine(Directory.GetCurrentDirectory(), "data");
+Directory.CreateDirectory(dataDirectory);
+var dbPath = Path.Combine(dataDirectory, "gitea_extensions.db");
 builder.Services.AddDbContext<GiteaExtensionsDbContext>(options =>
-    options.UseSqlite("Data Source=gitea_extensions.db", s => s.MigrationsAssembly("MinGo.Gitea.Core")));
+    options.UseSqlite($"Data Source={dbPath}", s => s.MigrationsAssembly("MinGo.Gitea.Core")));
 
 // 注册 Gitea 配置服务
 builder.Services.AddScoped<GiteaConfigService>();
