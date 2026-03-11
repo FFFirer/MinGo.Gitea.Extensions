@@ -1,0 +1,64 @@
+# Build outputs
+**/bin
+**/obj
+
+# Package management
+**/node_modules
+**/packages
+**/pnpm-lock.yaml
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# Version control
+.git
+.gitignore
+.svn
+
+# Editor directories and files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Environment files
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# User specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Testing
+**/TestResults
+
+# Documentation
+docs
+
+# Migrations
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS generated files
+Thumbs.db
+.DS_Store
+
+# Tool directories
+.claude
+.trae
+
+# Gitea workflow files
+.gitea
+
+# Docker
+Dockerfile*
+docker-compose*
+
+# Logs
+**/logs
+**/*.log

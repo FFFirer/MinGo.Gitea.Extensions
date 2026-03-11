@@ -38,6 +38,7 @@ WORKDIR /app
 COPY main.slnx .
 COPY src/MinGo.Gitea.Admin/MinGo.Gitea.Admin.csproj src/MinGo.Gitea.Admin/
 COPY src/MinGo.Gitea.Core/MinGo.Gitea.Core.csproj src/MinGo.Gitea.Core/
+COPY tests/MinGo.Gitea.Core.Tests/MinGo.Gitea.Core.Tests.csproj tests/MinGo.Gitea.Core.Tests/
 
 # 还原 nuget 包（使用缓存）
 RUN dotnet restore
