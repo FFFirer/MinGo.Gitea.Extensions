@@ -93,6 +93,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadWorkflowHistory();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadWorkflowHistory();
+    }
+
+    private async Task LoadWorkflowHistory()
+    {
         history = await WorkflowService.GetWorkflowRunHistoryByIdAsync(Id);
     }
 
