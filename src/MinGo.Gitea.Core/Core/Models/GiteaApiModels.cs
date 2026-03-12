@@ -110,4 +110,12 @@ public class GiteaObject {
     public required string Url { get; set; }
 }
 
+public class GiteaFileContent
+{
+    public required string Name { get; set; }
+    public required string Path { get; set; }
+    public required string Content { get; set; }
+    public required string Encoding { get; set; }
+}
+
 

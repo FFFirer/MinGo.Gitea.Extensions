@@ -17,4 +17,5 @@ public class WorkflowRunHistory
     public DateTime? StartedAt { get; set; } // 工作流开始执行时间
     public DateTime? EndedAt { get; set; } // 工作流结束执行时间
     public required string TriggerType { get; set; } // 手动触发或定时触发
+    public string? Inputs { get; set; }
 }

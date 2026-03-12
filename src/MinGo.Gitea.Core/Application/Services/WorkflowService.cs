@@ -2,6 +2,9 @@ using MinGo.Gitea.Core.Interfaces;
 using MinGo.Gitea.Core.Models;
 using MinGo.Gitea.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace MinGo.Gitea.Application.Services;
 
@@ -36,6 +39,87 @@ public class WorkflowService
         return await _apiClient.GetWorkflowsAsync(owner, repo);
     }
 
+    /// <summary>
+    /// 获取工作流的 inputs 定义
+    /// </summary>
+    public async Task<List<WorkflowInput>> GetWorkflowInputsAsync(string owner, string repo, string workflowPath)
+    {
+        try
+        {
+            var yamlContent = await _apiClient.GetWorkflowFileContentAsync(owner, repo, workflowPath);
+            if (string.IsNullOrEmpty(yamlContent))
+            {
+                return new List<WorkflowInput>();
+            }
+
+            var deserializer = new DeserializerBuilder()
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .Build();
+
+            var workflow = deserializer.Deserialize<Dictionary<string, object>>(yamlContent);
+            if (workflow == null)
+            {
+                return new List<WorkflowInput>();
+            }
+
+            if (!workflow.TryGetValue("on", out var onValue))
+            {
+                return new List<WorkflowInput>();
+            }
+
+            Dictionary<string, object>? workflowDispatch = null;
+
+            if (onValue is Dictionary<string, object> onDict)
+            {
+                if (onDict.TryGetValue("workflowDispatch", out var wd))
+                {
+                    workflowDispatch = wd as Dictionary<string, object>;
+                }
+            }
+            else if (onValue is string onStr && onStr == "workflow_dispatch")
+            {
+                return new List<WorkflowInput>();
+            }
+
+            if (workflowDispatch == null || !workflowDispatch.TryGetValue("inputs", out var inputsObj) || inputsObj is not Dictionary<object, object> inputs)
+            {
+                return new List<WorkflowInput>();
+            }
+
+            var result = new List<WorkflowInput>();
+            foreach (var (key, value) in inputs)
+            {
+                var inputName = key?.ToString() ?? "";
+                var inputDict = value as Dictionary<object, object>;
+
+                var input = new WorkflowInput
+                {
+                    Name = inputName,
+                    Type = inputDict?.TryGetValue("type", out var type) == true ? type?.ToString() ?? "string" : "string",
+                    Description = inputDict?.TryGetValue("description", out var desc) == true ? desc?.ToString() : null,
+                    Required = inputDict?.TryGetValue("required", out var req) == true && bool.TryParse(req?.ToString(), out var reqVal) && reqVal,
+                    DefaultValue = inputDict?.TryGetValue("default", out var def) == true ? def?.ToString() : null
+                };
+
+                if (input.Type == "choice" && inputDict?.TryGetValue("options", out var opts) == true)
+                {
+                    input.Options = (opts as List<object>)?.Select(o => o?.ToString() ?? "").ToList();
+                }
+
+                result.Add(input);
+            }
+
+            return result
+                .OrderByDescending(i => i.Required)
+                .ThenBy(i => i.Name)
+                .ToList();
+        }
+        catch
+        {
+            return new List<WorkflowInput>();
+        }
+    }
+
     public async Task<Repository?> GetRepositoryByNameAsync(string fullName)
     {
         var repositories = await GetRepositoriesAsync();
@@ -53,13 +137,17 @@ public class WorkflowService
 
         await Task.Delay(TimeSpan.FromSeconds(5));
 
-        // 获取最新的工作流运行记录
         var runs = await _apiClient.GetWorkflowRunsAsync(owner, repo, headSha: @ref.CommitSha, @event: "workflow_dispatch", page: 1, limit: 1);
         var run = runs.FirstOrDefault();
 
-        // 记录执行历史
         if (_dbContext != null && run != null)
         {
+            string? inputsJson = null;
+            if (inputs != null && inputs.Count > 0)
+            {
+                inputsJson = JsonConvert.SerializeObject(inputs);
+            }
+
             var history = new WorkflowRunHistory
             {
                 Owner = owner,
@@ -73,9 +161,10 @@ public class WorkflowService
                 Conclusion = run.Conclusion,
                 CreatedAt = run.CreatedAt,
                 UpdatedAt = run.UpdatedAt,
-                StartedAt = run.CreatedAt, // 开始时间
-                EndedAt = run.Status == "completed" ? run.UpdatedAt : null, // 结束时间
+                StartedAt = run.CreatedAt,
+                EndedAt = run.Status == "completed" ? run.UpdatedAt : null,
                 TriggerType = triggerType,
+                Inputs = inputsJson,
             };
 
             _dbContext.WorkflowRunHistories.Add(history);

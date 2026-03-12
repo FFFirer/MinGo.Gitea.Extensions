@@ -114,6 +114,26 @@ public class GiteaApiClient : IGiteaApiClient
         }) ?? Enumerable.Empty<Workflow>();
     }
 
+    public async Task<string> GetWorkflowFileContentAsync(string owner, string repo, string path)
+    {
+        var request = CreateRequest(HttpMethod.Get, $"/api/v1/repos/{owner}/{repo}/contents/{path}");
+        var response = await _httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadAsStringAsync();
+        var fileResult = JsonConvert.DeserializeObject<GiteaFileContent>(content);
+
+        if (fileResult == null || string.IsNullOrEmpty(fileResult.Content))
+        {
+            return string.Empty;
+        }
+
+        var decodedContent = System.Text.Encoding.UTF8.GetString(
+            Convert.FromBase64String(fileResult.Content.Replace("\n", ""))
+        );
+
+        return decodedContent;
+    }
+
     public async Task TriggerWorkflowAsync(string owner, string repo, string workflowId, string @ref, Dictionary<string, string>? inputs = null)
     {
         var requestBody = new GiteaWorkflowDispatchRequest

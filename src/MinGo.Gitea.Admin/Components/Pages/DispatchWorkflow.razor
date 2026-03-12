@@ -136,6 +136,73 @@
             <label class="block text-sm font-medium text-gray-800 mb-2">引用</label>
             <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedRef</div>
         </div>
+        @if (WorkflowInputs.Count > 0)
+        {
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-800 mb-2">输入参数</label>
+                @if (IsLoadingInputs)
+                {
+                    <div class="flex justify-center items-center py-4">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    </div>
+                }
+                else
+                {
+                    <div class="space-y-4">
+                        @foreach (var input in WorkflowInputs)
+                        {
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    @input.Name
+                                    @if (input.Required)
+                                    {
+                                        <span class="text-red-500">*</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(input.Description))
+                                    {
+                                        <span class="text-gray-500 text-xs ml-1">- @input.Description</span>
+                                    }
+                                </label>
+                                @switch (input.Type)
+                                {
+                                    case "boolean":
+                                        <div class="flex items-center">
+                                            <input type="checkbox" 
+                                                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                   checked="@GetBoolValue(input.Name)"
+                                                   @onchange="@(e => OnBoolInputChanged(input.Name, e.Value?.ToString() ?? "false"))">
+                                            <span class="ml-2 text-sm text-gray-600">@GetBoolDisplay(input.Name)</span>
+                                        </div>
+                                        break;
+                                    case "choice":
+                                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                @bind="InputValues[input.Name]">
+                                            @if (!string.IsNullOrEmpty(input.DefaultValue))
+                                            {
+                                                <option value="">默认值: @input.DefaultValue</option>
+                                            }
+                                            @if (input.Options != null)
+                                            {
+                                                @foreach (var option in input.Options)
+                                                {
+                                                    <option value="@option">@option</option>
+                                                }
+                                            }
+                                        </select>
+                                        break;
+                                    default:
+                                        <input type="text" 
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                               placeholder="@(input.DefaultValue ?? "")"
+                                               @oninput="@(e => OnInputChanged(input.Name, e.Value?.ToString() ?? ""))">
+                                        break;
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
         <div class="mt-4 flex justify-start gap-2">
             <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep">
                 上一步
@@ -161,6 +228,7 @@
     }
     private string SelectedWorkflowId { get; set; } = "";
     private string SelectedWorkflowName { get; set; } = "";
+    private string SelectedWorkflowPath { get; set; } = "";
     private string SelectedRef { get; set; } = "";
     private string ToastMessage { get; set; } = "";
     private Toast.ToastType ToastType { get; set; } = Toast.ToastType.Success;
@@ -168,9 +236,12 @@
     private List<MinGo.Gitea.Core.Models.Repository> Repositories { get; set; } = new List<MinGo.Gitea.Core.Models.Repository>();
     private List<MinGo.Gitea.Core.Models.Workflow> Workflows { get; set; } = new List<MinGo.Gitea.Core.Models.Workflow>();
     private List<MinGo.Gitea.Core.Models.Ref> Refs { get; set; } = new List<MinGo.Gitea.Core.Models.Ref>();
+    private List<MinGo.Gitea.Core.Models.WorkflowInput> WorkflowInputs { get; set; } = new List<MinGo.Gitea.Core.Models.WorkflowInput>();
+    private Dictionary<string, string> InputValues { get; set; } = new Dictionary<string, string>();
     private bool IsLoadingRepos { get; set; } = false;
     private bool IsLoadingWorkflows { get; set; } = false;
     private bool IsLoadingRefs { get; set; } = false;
+    private bool IsLoadingInputs { get; set; } = false;
     private bool IsTriggering { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
@@ -237,16 +308,54 @@
         SelectedWorkflowId = workflowId;
         SelectedRef = "";
         Refs.Clear();
+        WorkflowInputs.Clear();
+        InputValues.Clear();
         
-        // 获取工作流名称
         var workflow = Workflows.FirstOrDefault(w => w.Id.ToString() == workflowId);
         if (workflow != null)
         {
             SelectedWorkflowName = workflow.Name;
+            SelectedWorkflowPath = workflow.Path;
+            await LoadWorkflowInputsAsync();
         }
         
-        // 加载引用
         await LoadRefsAsync();
+    }
+
+    private async Task LoadWorkflowInputsAsync()
+    {
+        if (!(SelectedRepoId > 0) || string.IsNullOrEmpty(SelectedWorkflowPath))
+        {
+            return;
+        }
+        
+        IsLoadingInputs = true;
+        try
+        {
+            var repo = ParseRepo(SelectedRepoId);
+            if (repo is null)
+            {
+                return;
+            }
+            var inputs = await WorkflowService.GetWorkflowInputsAsync(repo.Owner, repo.Name, SelectedWorkflowPath);
+            WorkflowInputs = inputs;
+            
+            foreach (var input in WorkflowInputs)
+            {
+                if (!string.IsNullOrEmpty(input.DefaultValue))
+                {
+                    InputValues[input.Name] = input.DefaultValue;
+                }
+            }
+        }
+        catch
+        {
+            WorkflowInputs = new List<MinGo.Gitea.Core.Models.WorkflowInput>();
+        }
+        finally
+        {
+            IsLoadingInputs = false;
+        }
     }
 
     private async Task LoadRefsAsync()
@@ -283,11 +392,35 @@
         }
     }
 
+    private void OnInputChanged(string name, string value)
+    {
+        InputValues[name] = value;
+    }
+
+    private void OnBoolInputChanged(string name, string value)
+    {
+        InputValues[name] = value == "true" ? "true" : "false";
+    }
+
+    private bool GetBoolValue(string name)
+    {
+        return InputValues.TryGetValue(name, out var val) && val == "true";
+    }
+
+    private string GetBoolDisplay(string name)
+    {
+        return GetBoolValue(name) ? "是" : "否";
+    }
+
     private void PrevStep()
     {
         if (CurrentStep > 1)
         {
             CurrentStep--;
+            if (CurrentStep < 4)
+            {
+                InputValues.Clear();
+            }
         }
     }
 
@@ -297,6 +430,16 @@
         {
             ShowErrorToast("请完成所有选择步骤");
             return;
+        }
+
+        var requiredInputs = WorkflowInputs.Where(i => i.Required).ToList();
+        foreach (var input in requiredInputs)
+        {
+            if (!InputValues.TryGetValue(input.Name, out var value) || string.IsNullOrEmpty(value))
+            {
+                ShowErrorToast($"请填写必填参数: {input.Name}");
+                return;
+            }
         }
         
         IsTriggering = true;
@@ -308,11 +451,12 @@
             }
             var selectedWorkflow = Workflows.First(x => x.Id == SelectedWorkflowId);
             var selectedRef = Refs.First(x => x.Name == SelectedRef);
-            var workflowRun = await WorkflowService.TriggerWorkflowAsync(repo.Owner, repo.Name, selectedWorkflow, selectedRef, "手动触发");
+            
+            var inputs = InputValues.Where(kv => !string.IsNullOrEmpty(kv.Value)).ToDictionary(kv => kv.Key, kv => kv.Value);
+            var workflowRun = await WorkflowService.TriggerWorkflowAsync(repo.Owner, repo.Name, selectedWorkflow, selectedRef, "手动触发", inputs);
             if (workflowRun != null)
             {
                 ShowSuccessToast("工作流触发成功");
-                // 跳转到工作流详情页面
                 NavigationManager.NavigateTo($"/history/{workflowRun.Id}");
             }
             else
