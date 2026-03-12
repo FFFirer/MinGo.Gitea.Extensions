@@ -31,6 +31,8 @@ RUN pnpm run build
 # 第二阶段：构建 .NET 应用
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
 
+RUN dotnet tool install -g dotnet-ef --version 10.0.4
+
 # 设置工作目录
 WORKDIR /app
 
