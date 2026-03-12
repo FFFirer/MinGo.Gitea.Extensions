@@ -28,6 +28,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddHttpClient();
 
 // 配置数据库
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var dataDirectory = Path.Combine(Directory.GetCurrentDirectory(), "data");
 Directory.CreateDirectory(dataDirectory);
 var dbPath = Path.Combine(dataDirectory, "gitea_extensions.db");

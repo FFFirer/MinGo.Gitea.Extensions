@@ -54,8 +54,13 @@ COPY --from=frontend-build /app/wwwroot ./src/MinGo.Gitea.Admin/wwwroot
 # 使用 Release 编译项目
 RUN dotnet build --configuration Release
 
+
 # 发布 Web 站点
 RUN dotnet publish src/MinGo.Gitea.Admin --configuration Release --no-build --output /app/publish
+
+# 发布efbundle
+WORKDIR /app/src/MinGo.Gitea.Core
+RUN dotnet ef migrations bundle --configuration Release --output /app/publish/efbundle -f
 
 # 第三阶段：发布
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
