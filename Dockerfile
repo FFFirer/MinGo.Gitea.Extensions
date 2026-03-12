@@ -38,6 +38,9 @@ WORKDIR /app
 COPY main.slnx .
 COPY src/MinGo.Gitea.Admin/MinGo.Gitea.Admin.csproj src/MinGo.Gitea.Admin/
 COPY src/MinGo.Gitea.Core/MinGo.Gitea.Core.csproj src/MinGo.Gitea.Core/
+COPY tests/MinGo.Gitea.Core.Tests/MinGo.Gitea.Core.Tests.csproj tests/MinGo.Gitea.Core.Tests/
+COPY Directory.Packages.props .
+COPY nuget.config .
 
 # 还原 nuget 包（使用缓存）
 RUN dotnet restore
@@ -51,8 +54,13 @@ COPY --from=frontend-build /app/wwwroot ./src/MinGo.Gitea.Admin/wwwroot
 # 使用 Release 编译项目
 RUN dotnet build --configuration Release
 
+
 # 发布 Web 站点
 RUN dotnet publish src/MinGo.Gitea.Admin --configuration Release --no-build --output /app/publish
+
+# 发布efbundle
+WORKDIR /app/src/MinGo.Gitea.Core
+RUN dotnet ef migrations bundle --configuration Release --output /app/publish/efbundle -f
 
 # 第三阶段：发布
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime

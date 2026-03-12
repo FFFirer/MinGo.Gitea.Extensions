@@ -137,15 +137,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadHistoryAsync();
+        await LoadWorkflowHistory();
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        await LoadHistoryAsync();
+        await LoadWorkflowHistory();
     }
 
-    private async Task LoadHistoryAsync()
+    private async Task LoadWorkflowHistory()
     {
         history = await WorkflowService.GetWorkflowRunHistoryByIdAsync(Id);
     }
