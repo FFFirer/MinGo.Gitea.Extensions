@@ -213,7 +213,7 @@ public class WorkflowService
         }
 
         return await _dbContext.WorkflowRunHistories
-            .Where(h => h.Status == "running")
+            .Where(h => h.Status == "in_progress")
             .CountAsync();
     }
 

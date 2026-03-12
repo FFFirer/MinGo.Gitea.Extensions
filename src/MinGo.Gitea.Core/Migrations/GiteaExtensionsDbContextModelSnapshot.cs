@@ -7,7 +7,7 @@ using MinGo.Gitea.Infrastructure.Data;
 
 #nullable disable
 
-namespace MinGo.Gitea.Migrations
+namespace MinGo.Gitea.Core.Migrations
 {
     [DbContext(typeof(GiteaExtensionsDbContext))]
     partial class GiteaExtensionsDbContextModelSnapshot : ModelSnapshot
@@ -157,6 +157,9 @@ namespace MinGo.Gitea.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastTriggeredAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")

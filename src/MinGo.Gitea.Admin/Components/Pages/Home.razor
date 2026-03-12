@@ -62,7 +62,7 @@ else
                                 <td class="px-4 py-3 text-sm text-gray-500">@GetExecutionTime(run)</td>
                                 <td class="px-4 py-3">
                                     <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors mr-2" @onclick="() => ViewRunDetails(run.Id)">查看</button>
-                                    <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="() => ReRunWorkflow(run)">再执行一次</button>
+                                    <button class="text-xs px-2 py-1 bg-blue-500 text-white border border-blue-500 rounded hover:bg-blue-600 transition-colors" @onclick="() => ReRunWorkflow(run)">再执行一次</button>
                                 </td>
                             </tr>
                         }
@@ -103,6 +103,7 @@ else
                                 <td class="px-4 py-3 text-sm text-gray-500">@template.Ref</td>
                                 <td class="px-4 py-3 text-sm text-gray-500">@(template.LastTriggeredAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
                                 <td class="px-4 py-3">
+                                    <button class="text-xs px-2 py-1 bg-blue-500 text-white border border-blue-500 rounded hover:bg-blue-600 transition-colors mr-2" @onclick="() => ExecuteTemplate(template)">执行</button>
                                     <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="() => ViewTemplate(template)">查看</button>
                                 </td>
                             </tr>
@@ -192,6 +193,7 @@ else
         return status switch
         {
             "running" => "running",
+            "in_progress" => "in_progress",
             "completed" => "completed",
             "failed" => "failed",
             "canceled" => "canceled",
@@ -231,6 +233,48 @@ else
     private void ViewTemplate(WorkflowTriggerTemplate template)
     {
         NavigationManager.NavigateTo("/templates");
+    }
+
+    /// <summary>
+    /// 执行工作流触发模板
+    /// </summary>
+    private async Task ExecuteTemplate(WorkflowTriggerTemplate template)
+    {
+        try
+        {
+            isLoading = true;
+
+            var workflow = new Core.Models.Workflow
+            {
+                Id = template.WorkflowId,
+                Name = template.WorkflowName,
+                Path = "",
+                State = "active"
+            };
+
+            var @ref = await WorkflowService.GetRefAsync(template.Owner, template.Repo, template.Ref);
+            if (@ref == null || @ref.Commit == null)
+            {
+                throw new Exception($"无法获取引用 {template.Ref} 的最新提交信息");
+            }
+
+            var newHistory = await WorkflowService.TriggerWorkflowAsync(
+                template.Owner,
+                template.Repo,
+                workflow,
+                @ref,
+                "模板触发"
+            );
+
+            if (newHistory != null)
+            {
+                NavigationManager.NavigateTo($"/history/{newHistory.Id}");
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     /// <summary>
