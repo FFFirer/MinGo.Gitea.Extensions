@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using MinGo.Gitea.Core.Interfaces;
 using MinGo.Gitea.Core.Models;
@@ -11,54 +12,45 @@ namespace MinGo.Gitea.Core.Tests;
 public class GiteaApiClientTests
 {
     private const string TestFlagEnvironmentVariable = "RUN_GITEA_API_TESTS";
-    // public static bool IsGiteaApiTestEnabled => Environment.GetEnvironmentVariable(TestFlagEnvironmentVariable) == "1";
-    
     public static bool IsGiteaApiTestEnabled => true;
 
-    
     private readonly HttpClient _httpClient;
     private readonly GiteaConfig _config;
     private readonly IGiteaApiClient _client;
 
     public GiteaApiClientTests()
     {
-        // Initialize fields with default values
         var services = new ServiceCollection();
         services.AddHttpClient();
         var serviceProvider = services.BuildServiceProvider();
         var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
-        
-        _httpClient = httpClientFactory.CreateClient();
-        _config = new GiteaConfig
-        {
-            ServerUrl = "https://gitea.example.com",
-            Token = "test-token",
-            Username = "test-user"
-        };
-        _client = new GiteaApiClient(httpClientFactory, _config);
 
-        // Skip initialization if tests are not enabled
         if (!IsGiteaApiTestEnabled)
         {
+            _httpClient = httpClientFactory.CreateClient();
+            _config = new GiteaConfig
+            {
+                ServerUrl = "https://gitea.example.com",
+                Token = "test-token",
+                Username = "test-user"
+            };
+            _client = new GiteaApiClient(httpClientFactory, _config);
             return;
         }
 
-        // Load configuration from appsettings.json and user secrets
         var configuration = new ConfigurationBuilder()
             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
             .AddUserSecrets<GiteaApiClientTests>()
             .Build();
 
-        // Create Gitea config from configuration
         _config = new GiteaConfig
         {
-            ServerUrl = configuration["Gitea:ServerUrl"] ?? throw new Exception("Gitea:ServerUrl is not set in appsettings.json or user secrets"),
-            Token = configuration["Gitea:Token"] ?? throw new Exception("Gitea:Token is not set in appsettings.json or user secrets"),
-            Username = configuration["Gitea:Username"] ?? throw new Exception("Gitea:Username is not set in appsettings.json or user secrets")
+            ServerUrl = configuration["Gitea:ServerUrl"] ?? throw new InvalidOperationException("Gitea:ServerUrl is not set in appsettings.json or user secrets"),
+            Token = configuration["Gitea:Token"] ?? throw new InvalidOperationException("Gitea:Token is not set in appsettings.json or user secrets"),
+            Username = configuration["Gitea:Username"] ?? throw new InvalidOperationException("Gitea:Username is not set in appsettings.json or user secrets")
         };
 
-        // Create actual HttpClient
         _httpClient = httpClientFactory.CreateClient();
         _client = new GiteaApiClient(httpClientFactory, _config);
     }

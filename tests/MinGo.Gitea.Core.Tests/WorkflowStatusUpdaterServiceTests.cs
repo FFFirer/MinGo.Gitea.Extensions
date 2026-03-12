@@ -1,3 +1,5 @@
+using System;
+using System.Threading;
 using MinGo.Gitea.Application.Services;
 using MinGo.Gitea.Core.Models;
 using MinGo.Gitea.Infrastructure.Data;
@@ -5,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using Xunit.Sdk;
+using System.Diagnostics.CodeAnalysis;
 
 namespace MinGo.Gitea.Core.Tests;
 
@@ -12,8 +16,8 @@ public class WorkflowStatusUpdaterServiceTests
 {
     private Mock<WorkflowService> _mockWorkflowService;
     private readonly Mock<ILogger<WorkflowStatusUpdaterService>> _mockLogger;
-    private GiteaExtensionsDbContext _dbContext;
-    private WorkflowStatusUpdaterService _service;
+    private GiteaExtensionsDbContext? _dbContext;
+    private WorkflowStatusUpdaterService? _service;
 
     public WorkflowStatusUpdaterServiceTests()
     {
@@ -21,6 +25,8 @@ public class WorkflowStatusUpdaterServiceTests
         _mockLogger = new Mock<ILogger<WorkflowStatusUpdaterService>>();
     }
 
+    [MemberNotNull(nameof(_dbContext))]
+    [MemberNotNull(nameof(_service))]
     private void SetupTestContext()
     {
         // 创建内存数据库
@@ -29,7 +35,7 @@ public class WorkflowStatusUpdaterServiceTests
             .Options;
 
         _dbContext = new GiteaExtensionsDbContext(options);
-        _mockWorkflowService = new Mock<WorkflowService>(null, _dbContext);
+        _mockWorkflowService = new Mock<WorkflowService>([default!, _dbContext]);
         _service = new WorkflowStatusUpdaterService(_mockWorkflowService.Object, _dbContext, _mockLogger.Object);
     }
 
@@ -58,7 +64,7 @@ public class WorkflowStatusUpdaterServiceTests
         };
 
         _dbContext.WorkflowRunHistories.Add(history);
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // 模拟 API 响应
         var mockRun = new WorkflowRun
@@ -80,7 +86,7 @@ public class WorkflowStatusUpdaterServiceTests
         await _service.UpdateWorkflowStatusesAsync();
 
         // 验证结果
-        var updatedHistory = await _dbContext.WorkflowRunHistories.FirstAsync(h => h.Id == 1);
+        var updatedHistory = await _dbContext.WorkflowRunHistories.FirstAsync(h => h.Id == 1, TestContext.Current.CancellationToken);
         Assert.Equal("completed", updatedHistory.Status);
         Assert.Equal("success", updatedHistory.Conclusion);
         Assert.NotNull(updatedHistory.EndedAt);
@@ -111,7 +117,7 @@ public class WorkflowStatusUpdaterServiceTests
         };
 
         _dbContext.WorkflowRunHistories.Add(history);
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // 模拟 API 错误
         _mockWorkflowService.Setup(s => s.GetWorkflowRunAsync("test-owner", "test-repo", 123))
@@ -121,7 +127,7 @@ public class WorkflowStatusUpdaterServiceTests
         await _service.UpdateWorkflowStatusesAsync();
 
         // 验证结果 - 记录应该保持不变
-        var updatedHistory = await _dbContext.WorkflowRunHistories.FirstAsync(h => h.Id == 1);
+        var updatedHistory = await _dbContext.WorkflowRunHistories.FirstAsync(h => h.Id == 1, TestContext.Current.CancellationToken);
         Assert.Equal("running", updatedHistory.Status);
     }
 
@@ -190,7 +196,7 @@ public class WorkflowStatusUpdaterServiceTests
         };
 
         _dbContext.WorkflowRunHistories.AddRange(runningHistory, completedHistory);
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // 模拟 API 响应
         var mockRun = new WorkflowRun
@@ -212,8 +218,8 @@ public class WorkflowStatusUpdaterServiceTests
         await _service.UpdateWorkflowStatusesAsync();
 
         // 验证结果 - 只有运行中的记录被更新
-        var updatedRunningHistory = await _dbContext.WorkflowRunHistories.FirstAsync(h => h.Id == 1);
-        var updatedCompletedHistory = await _dbContext.WorkflowRunHistories.FirstAsync(h => h.Id == 2);
+        var updatedRunningHistory = await _dbContext.WorkflowRunHistories.FirstAsync(h => h.Id == 1, TestContext.Current.CancellationToken);
+        var updatedCompletedHistory = await _dbContext.WorkflowRunHistories.FirstAsync(h => h.Id == 2, TestContext.Current.CancellationToken);
 
         Assert.Equal("completed", updatedRunningHistory.Status);
         Assert.Equal("success", updatedRunningHistory.Conclusion);

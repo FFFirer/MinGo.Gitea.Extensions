@@ -18,7 +18,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: './BlazorApp/wwwroot',
+    outDir: './wwwroot',
     emptyOutDir: false,
     manifest: true,
     rollupOptions: {
