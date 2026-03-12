@@ -229,4 +229,90 @@ public class WorkflowService
             .Take(count)
             .ToListAsync();
     }
+
+    /// <summary>
+    /// 获取所有工作流触发模板
+    /// </summary>
+    public async Task<IEnumerable<WorkflowTriggerTemplate>> GetTemplatesAsync()
+    {
+        if (_dbContext == null)
+        {
+            return Enumerable.Empty<WorkflowTriggerTemplate>();
+        }
+
+        return await _dbContext.WorkflowTriggerTemplates
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// 保存工作流触发模板
+    /// </summary>
+    public async Task<WorkflowTriggerTemplate?> SaveTemplateAsync(string name, WorkflowRunHistory history)
+    {
+        if (_dbContext == null)
+        {
+            return null;
+        }
+
+        var template = new WorkflowTriggerTemplate
+        {
+            Name = name,
+            Owner = history.Owner,
+            Repo = history.Repo,
+            WorkflowId = history.WorkflowId,
+            WorkflowName = history.WorkflowName,
+            Ref = history.Ref,
+            CreatedAt = DateTime.Now
+        };
+
+        _dbContext.WorkflowTriggerTemplates.Add(template);
+        await _dbContext.SaveChangesAsync();
+
+        return template;
+    }
+
+    /// <summary>
+    /// 删除工作流触发模板
+    /// </summary>
+    public async Task<bool> DeleteTemplateAsync(int id)
+    {
+        if (_dbContext == null)
+        {
+            return false;
+        }
+
+        var template = await _dbContext.WorkflowTriggerTemplates.FindAsync(id);
+        if (template == null)
+        {
+            return false;
+        }
+
+        _dbContext.WorkflowTriggerTemplates.Remove(template);
+        await _dbContext.SaveChangesAsync();
+
+        return true;
+    }
+
+    /// <summary>
+    /// 更新模板的最后触发时间
+    /// </summary>
+    public async Task<bool> UpdateTemplateTriggerTimeAsync(int templateId)
+    {
+        if (_dbContext == null)
+        {
+            return false;
+        }
+
+        var template = await _dbContext.WorkflowTriggerTemplates.FindAsync(templateId);
+        if (template == null)
+        {
+            return false;
+        }
+
+        template.LastTriggeredAt = DateTime.Now;
+        await _dbContext.SaveChangesAsync();
+
+        return true;
+    }
 }

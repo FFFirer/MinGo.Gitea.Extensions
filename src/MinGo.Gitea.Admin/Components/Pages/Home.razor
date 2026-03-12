@@ -47,7 +47,7 @@ else
                     </tr>
                 </thead>
                 <tbody>
-                    @if (recentRuns.Any())
+                    @if (recentRuns?.Any() == true)
                     {
                         @foreach (var run in recentRuns)
                         {
@@ -77,6 +77,47 @@ else
             </table>
         </div>
     </Card>
+
+    <Card Title="最近触发模板">
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="border-b border-gray-200">
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">模板名称</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">仓库</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">工作流</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">分支</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">最后触发时间</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (recentTemplates?.Any() == true)
+                    {
+                        @foreach (var template in recentTemplates)
+                        {
+                            <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                                <td class="px-4 py-3 text-sm text-gray-800">@template.Name</td>
+                                <td class="px-4 py-3 text-sm text-gray-500">@template.Owner/@template.Repo</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">@template.WorkflowName</td>
+                                <td class="px-4 py-3 text-sm text-gray-500">@template.Ref</td>
+                                <td class="px-4 py-3 text-sm text-gray-500">@(template.LastTriggeredAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
+                                <td class="px-4 py-3">
+                                    <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="() => ViewTemplate(template)">查看</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="px-4 py-6 text-center text-gray-500">暂无触发模板</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </Card>
 }
 
 @code {
@@ -85,9 +126,10 @@ else
     private int monthlyRunCount;
     private int successfulRuns;
     private int successRate;
-    private string averageExecutionTime;
+    private string averageExecutionTime = "N/A";
     private int runningRunCount;
-    private IEnumerable<WorkflowRunHistory> recentRuns;
+    private IEnumerable<WorkflowRunHistory> recentRuns = Enumerable.Empty<WorkflowRunHistory>();
+    private IEnumerable<WorkflowTriggerTemplate> recentTemplates = Enumerable.Empty<WorkflowTriggerTemplate>();
 
     [Inject]
     private WorkflowService WorkflowService { get; set; } = default!;
@@ -128,6 +170,11 @@ else
 
             // 获取最近执行记录
             recentRuns = await WorkflowService.GetRecentRunsAsync(5);
+
+            // 获取最近触发模板
+            recentTemplates = (await WorkflowService.GetTemplatesAsync())
+                .OrderByDescending(t => t.LastTriggeredAt ?? t.CreatedAt)
+                .Take(5);
         }
         catch (Exception ex)
         {
@@ -176,6 +223,14 @@ else
     private void ViewRunDetails(int id)
     {
         NavigationManager.NavigateTo($"/history/{id}");
+    }
+
+    /// <summary>
+    /// 查看模板详情，跳转到模板列表页面
+    /// </summary>
+    private void ViewTemplate(WorkflowTriggerTemplate template)
+    {
+        NavigationManager.NavigateTo("/templates");
     }
 
     /// <summary>

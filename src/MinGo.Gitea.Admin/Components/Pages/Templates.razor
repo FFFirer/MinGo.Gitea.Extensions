@@ -1,0 +1,147 @@
+@page "/templates"
+
+<h1 class="text-2xl font-semibold text-gray-800 mb-6">触发模板</h1>
+
+<Card Title="模板列表">
+    <div class="overflow-x-auto">
+        <table class="w-full border-collapse">
+            <thead>
+                <tr class="border-b border-gray-200">
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">模板名称</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">仓库</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">工作流</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">分支</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">创建时间</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (templates != null && templates.Any())
+                {
+                    @foreach (var template in templates)
+                    {
+                        <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-sm text-gray-800">@template.Name</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">@template.Owner/@template.Repo</td>
+                            <td class="px-4 py-3 text-sm text-gray-800">@template.WorkflowName</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">@template.Ref</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">@template.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td class="px-4 py-3">
+                                <div class="flex space-x-2">
+                                    <button class="text-xs px-2 py-1 bg-blue-50 border border-blue-200 text-blue-600 rounded hover:bg-blue-100 transition-colors" 
+                                            @onclick="() => ExecuteTemplate(template)" disabled="@isLoading">
+                                        @if (isLoading && loadingTemplateId == template.Id)
+                                        {
+                                            <div class="flex items-center">
+                                                <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1"></div>
+                                                执行中
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            @("执行")
+                                        }
+                                    </button>
+                                    <button class="text-xs px-2 py-1 bg-red-50 border border-red-200 text-red-600 rounded hover:bg-red-100 transition-colors" 
+                                            @onclick="() => DeleteTemplate(template.Id)" disabled="@isLoading">
+                                        删除
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">暂无模板</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</Card>
+
+@code {
+    private List<MinGo.Gitea.Core.Models.WorkflowTriggerTemplate> templates = new();
+    private bool isLoading = false;
+    private int? loadingTemplateId = null;
+
+    [Inject]
+    private MinGo.Gitea.Application.Services.WorkflowService WorkflowService { get; set; } = default!;
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTemplates();
+    }
+
+    private async Task LoadTemplates()
+    {
+        var result = await WorkflowService.GetTemplatesAsync();
+        templates = result.ToList();
+    }
+
+    /// <summary>
+    /// 执行模板
+    /// </summary>
+    private async Task ExecuteTemplate(MinGo.Gitea.Core.Models.WorkflowTriggerTemplate template)
+    {
+        try
+        {
+            isLoading = true;
+            loadingTemplateId = template.Id;
+
+            var workflow = new Core.Models.Workflow
+            {
+                Id = template.WorkflowId,
+                Name = template.WorkflowName,
+                Path = "",
+                State = "active"
+            };
+
+            var refInfo = await WorkflowService.GetRefAsync(template.Owner, template.Repo, template.Ref);
+            if (refInfo == null || refInfo.Commit == null)
+            {
+                return;
+            }
+
+            var @ref = new Core.Models.Ref
+            {
+                Name = template.Ref,
+                Type = template.Ref.StartsWith("refs/heads/") ? "branch" : template.Ref.StartsWith("refs/tags/") ? "tag" : "unknown",
+                Commit = refInfo.Commit
+            };
+
+            var history = await WorkflowService.TriggerWorkflowAsync(
+                template.Owner,
+                template.Repo,
+                workflow,
+                @ref,
+                "模板触发"
+            );
+
+            if (history != null)
+            {
+                await WorkflowService.UpdateTemplateTriggerTimeAsync(template.Id);
+                NavigationManager.NavigateTo($"/history/{history.Id}");
+            }
+        }
+        finally
+        {
+            isLoading = false;
+            loadingTemplateId = null;
+        }
+    }
+
+    /// <summary>
+    /// 删除模板
+    /// </summary>
+    private async Task DeleteTemplate(int id)
+    {
+        await WorkflowService.DeleteTemplateAsync(id);
+        await LoadTemplates();
+    }
+}

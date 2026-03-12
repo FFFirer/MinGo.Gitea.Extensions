@@ -1,19 +1,19 @@
 # 目标
 
-通过[[Gitea开放平台接口]]获取Gitea中工作流信息，实现更多触发工作流执行的方式
+通过\[\[Gitea开放平台接口]]获取Gitea中工作流信息，实现更多触发工作流执行的方式
 
 # Gitea开放平台接口
 
 ## 有哪些接口？
 
-- OpenAPI文档：https://docs.gitea.cn/redocusaurus/plugin-redoc-2.yaml
-- 接口文档地址：https://docs.gitea.cn/api/1.20/
-    - 左边是按模块区分的导航菜单
-    - 右边正文是接口描述及示例
+- OpenAPI文档：<https://docs.gitea.cn/redocusaurus/plugin-redoc-2.yaml>
+- 接口文档地址：<https://docs.gitea.cn/api/1.20/>
+  - 左边是按模块区分的导航菜单
+  - 右边正文是接口描述及示例
 
 ## 如何接入？
 
-- 参考API使用指南：https://docs.gitea.cn/development/api-usage 了解如何接入
+- 参考API使用指南：<https://docs.gitea.cn/development/api-usage> 了解如何接入
 
 # 技术框架
 
@@ -42,7 +42,7 @@
   - 前端开发：负责页面设计及交互逻辑实现
   - 后端开发：负责业务逻辑实现，数据库访问等
   - 数据库开发：负责数据库设计及实现
-  - 测试开发：负责测试用例编写及执行 
+  - 测试开发：负责测试用例编写及执行
 
 # 不能做
 
@@ -101,3 +101,7 @@ c# 代码使用单元测试验证逻辑执行正确，保证代码交付质量
 
 - .net项目可以使用user-secrets配置敏感信息
 - 前端项目可以使用环境变量配置敏感信息
+
+# Spec模式
+
+- 按任务名称区分不同任务对应的文档文件夹

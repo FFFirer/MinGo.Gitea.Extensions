@@ -60,6 +60,19 @@ else
             <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@history.CommitSha</div>
         </div>
         <div class="flex space-x-4">
+            <button class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors" @onclick="ShowSaveTemplateDialog" disabled="@isLoading">
+                @if (isSavingTemplate)
+                {
+                    <div class="flex items-center">
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        保存中...
+                    </div>
+                }
+                else
+                {
+                    @("保存为模板")
+                }
+            </button>
             <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="ReRunWorkflow" disabled="@isLoading">
                 @if (isLoading)
                 {
@@ -78,12 +91,34 @@ else
     </Card>
 }
 
+@if (showSaveTemplateDialog)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">保存为模板</h3>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-800 mb-2">模板名称</label>
+                <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" 
+                       placeholder="请输入模板名称" @bind="templateName" @bind:event="oninput">
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="CancelSaveTemplate">取消</button>
+                <button class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors" 
+                        @onclick="SaveTemplate" disabled="@isSavingTemplate">确定</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter]
     public int Id { get; set; }
 
     private WorkflowRunHistory? history;
     private bool isLoading = false;
+    private bool showSaveTemplateDialog = false;
+    private string templateName = string.Empty;
+    private bool isSavingTemplate = false;
 
     [Inject]
     private WorkflowService WorkflowService { get; set; } = default!;
@@ -133,6 +168,50 @@ else
     private async Task BackToHistory()
     {
         NavigationManager.NavigateTo("/history");
+    }
+
+    /// <summary>
+    /// 显示保存模板对话框
+    /// </summary>
+    private void ShowSaveTemplateDialog()
+    {
+        if (history != null)
+        {
+            templateName = $"{history.WorkflowName}_{history.Ref}";
+            showSaveTemplateDialog = true;
+        }
+    }
+
+    /// <summary>
+    /// 保存为模板
+    /// </summary>
+    private async Task SaveTemplate()
+    {
+        if (history == null || string.IsNullOrWhiteSpace(templateName))
+        {
+            return;
+        }
+
+        try
+        {
+            isSavingTemplate = true;
+            await WorkflowService.SaveTemplateAsync(templateName, history);
+            showSaveTemplateDialog = false;
+            templateName = string.Empty;
+        }
+        finally
+        {
+            isSavingTemplate = false;
+        }
+    }
+
+    /// <summary>
+    /// 取消保存模板
+    /// </summary>
+    private void CancelSaveTemplate()
+    {
+        showSaveTemplateDialog = false;
+        templateName = string.Empty;
     }
 
     /// <summary>
