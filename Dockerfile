@@ -57,10 +57,11 @@ COPY --from=frontend-build /app/wwwroot ./src/MinGo.Gitea.Admin/wwwroot
 
 # 使用 Release 编译项目
 RUN dotnet build --configuration Release
-
+RUN ls ./src/MinGo.Gitea.Admin/wwwroot
 
 # 发布 Web 站点
 RUN dotnet publish src/MinGo.Gitea.Admin --configuration Release --no-build --output /app/publish
+RUN ls /app/publish/wwwroot
 
 # 发布efbundle
 WORKDIR /app/src/MinGo.Gitea.Core
