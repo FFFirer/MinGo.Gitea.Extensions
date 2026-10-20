@@ -12,7 +12,7 @@ public class WorkflowStatusUpdaterService
     private readonly WorkflowService _workflowService;
     private readonly GiteaExtensionsDbContext? _dbContext;
     private readonly ILogger<WorkflowStatusUpdaterService>? _logger;
-    private const int MaxConcurrentUpdates = 5; // 最大并发更新数
+    private const int MaxConcurrentUpdates = 5;
 
     public WorkflowStatusUpdaterService(WorkflowService workflowService, GiteaExtensionsDbContext? dbContext = null, ILogger<WorkflowStatusUpdaterService>? logger = null)
     {
@@ -31,7 +31,6 @@ public class WorkflowStatusUpdaterService
 
         try
         {
-            // 获取所有状态不是 completed 的工作流执行记录
             var runningWorkflows = await _dbContext.WorkflowRunHistories
                 .Where(h => h.Status != "completed")
                 .ToListAsync();
@@ -44,7 +43,6 @@ public class WorkflowStatusUpdaterService
                 return;
             }
 
-            // 分批并发处理
             var updatedCount = 0;
             var batches = runningWorkflows.Chunk(MaxConcurrentUpdates);
 
@@ -61,7 +59,6 @@ public class WorkflowStatusUpdaterService
                 updatedCount += results.Count(r => r);
             }
 
-            // 保存所有更新
             if (updatedCount > 0)
             {
                 await _dbContext.SaveChangesAsync();
@@ -78,17 +75,15 @@ public class WorkflowStatusUpdaterService
     {
         try
         {
-            // 调用 Gitea API 获取最新状态
-            var run = await _workflowService.GetWorkflowRunAsync(history.Owner, history.Repo, history.RunId);
+            // 按 history.ConnectionId 路由到对应 Gitea / GitHub 连接
+            var run = await _workflowService.GetWorkflowRunAsync(history.Owner, history.Repo, history.RunId, history.ConnectionId);
 
             if (run != null)
             {
-                // 更新状态和相关信息
                 history.Status = run.Status;
                 history.Conclusion = run.Conclusion;
                 history.UpdatedAt = DateTime.Now;
 
-                // 如果工作流已完成，更新结束时间
                 if (run.Status == "completed")
                 {
                     history.EndedAt = run.UpdatedAt;
@@ -105,7 +100,6 @@ public class WorkflowStatusUpdaterService
         }
         catch (Exception ex)
         {
-            // 记录错误但继续处理其他记录
             _logger?.LogError(ex, "Error updating workflow {RunId} status: {Message}", history.RunId, ex.Message);
             return false;
         }

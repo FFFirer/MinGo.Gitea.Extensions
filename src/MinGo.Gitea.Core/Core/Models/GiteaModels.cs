@@ -7,6 +7,8 @@ public class Repository
     public required string FullName { get; set; }
     public required string Owner { get; set; }
     public required string HtmlUrl { get; set; }
+    public int ConnectionId { get; set; }
+    public ProviderType Provider { get; set; } = ProviderType.Gitea;
 }
 
 public class Branch
@@ -27,6 +29,8 @@ public class Workflow
     public required string Name { get; set; }
     public required string Path { get; set; }
     public required string State { get; set; }
+    public int ConnectionId { get; set; }
+    public ProviderType Provider { get; set; } = ProviderType.Gitea;
 }
 
 public class WorkflowRun
@@ -39,5 +43,7 @@ public class WorkflowRun
     public DateTime UpdatedAt { get; set; }
     public required string Ref { get; set; }
     public required string CommitSha { get; set; }
+    public int ConnectionId { get; set; }
+    public ProviderType Provider { get; set; } = ProviderType.Gitea;
 }
 

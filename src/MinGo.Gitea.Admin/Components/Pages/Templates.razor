@@ -99,10 +99,12 @@
                 Id = template.WorkflowId,
                 Name = template.WorkflowName,
                 Path = "",
-                State = "active"
+                State = "active",
+                ConnectionId = template.ConnectionId,
+                Provider = template.Provider
             };
 
-            var refInfo = await WorkflowService.GetRefAsync(template.Owner, template.Repo, template.Ref);
+            var refInfo = await WorkflowService.GetRefAsync(template.Owner, template.Repo, template.Ref, template.ConnectionId);
             if (refInfo == null || refInfo.Commit == null)
             {
                 return;

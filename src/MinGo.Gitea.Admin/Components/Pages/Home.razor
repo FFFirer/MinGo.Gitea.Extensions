@@ -249,10 +249,12 @@ else
                 Id = template.WorkflowId,
                 Name = template.WorkflowName,
                 Path = "",
-                State = "active"
+                State = "active",
+                ConnectionId = template.ConnectionId,
+                Provider = template.Provider
             };
 
-            var @ref = await WorkflowService.GetRefAsync(template.Owner, template.Repo, template.Ref);
+            var @ref = await WorkflowService.GetRefAsync(template.Owner, template.Repo, template.Ref, template.ConnectionId);
             if (@ref == null || @ref.Commit == null)
             {
                 throw new Exception($"无法获取引用 {template.Ref} 的最新提交信息");
@@ -291,12 +293,14 @@ else
             {
                 Id = run.WorkflowId,
                 Name = run.WorkflowName,
-                Path = "", // 空值占位
-                State = "active" // 假设工作流状态为活跃
+                Path = "",
+                State = "active",
+                ConnectionId = run.ConnectionId,
+                Provider = run.Provider
             };
 
             // 获取最新的 commit 信息
-            var @ref = await WorkflowService.GetRefAsync(run.Owner, run.Repo, run.Ref);
+            var @ref = await WorkflowService.GetRefAsync(run.Owner, run.Repo, run.Ref, run.ConnectionId);
             if (@ref == null || @ref.Commit == null)
             {
                 throw new Exception($"无法获取引用 {run.Ref} 的最新提交信息");

@@ -427,6 +427,7 @@ autom4te.cache/
 *.tar.gz
 tarballs/
 test-results/
+TestResults/
 
 # content below from: https://github.com/github/gitignore/blob/main/Global/macOS.gitignore
 # General
@@ -484,3 +485,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Vite build output
+src/MinGo.Gitea.Admin/BlazorApp/
+

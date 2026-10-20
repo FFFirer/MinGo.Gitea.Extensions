@@ -1,52 +1,144 @@
 using MinGo.Gitea.Core.Interfaces;
 using MinGo.Gitea.Core.Models;
+using MinGo.Gitea.Infrastructure;
 using MinGo.Gitea.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace MinGo.Gitea.Application.Services;
 
+/// <summary>
+/// 工作流业务服务：支持多个 Gitea / GitHub 连接，仓库列表合并展示。
+/// </summary>
 public class WorkflowService
 {
-    public readonly IGiteaApiClient _apiClient;
+    private readonly IActionsApiClient? _apiClient;
+    private readonly ActionsClientFactory? _clientFactory;
+    private readonly ProviderConnectionService? _connectionService;
     private readonly GiteaExtensionsDbContext? _dbContext;
 
-    public WorkflowService(IGiteaApiClient apiClient, GiteaExtensionsDbContext? dbContext = null)
+    /// <summary>测试/单连接构造</summary>
+    public WorkflowService(IActionsApiClient? apiClient, GiteaExtensionsDbContext? dbContext = null)
     {
         _apiClient = apiClient;
         _dbContext = dbContext;
     }
 
+    /// <summary>多连接 DI 构造</summary>
+    [ActivatorUtilitiesConstructor]
+    public WorkflowService(
+        ActionsClientFactory clientFactory,
+        ProviderConnectionService connectionService,
+        GiteaExtensionsDbContext? dbContext = null)
+    {
+        _clientFactory = clientFactory;
+        _connectionService = connectionService;
+        _dbContext = dbContext;
+    }
+
+    private async Task<List<(ProviderConnection Connection, IActionsApiClient Client)>> GetClientsAsync()
+    {
+        var result = new List<(ProviderConnection, IActionsApiClient)>();
+
+        if (_apiClient != null)
+        {
+            var name = "default";
+            result.Add((new ProviderConnection
+            {
+                Id = _apiClient.ConnectionId,
+                Name = name,
+                ProviderType = _apiClient.ProviderType,
+                ServerUrl = "",
+                Token = "",
+                Username = ""
+            }, _apiClient));
+            return result;
+        }
+
+        if (_connectionService == null || _clientFactory == null)
+        {
+            return result;
+        }
+
+        foreach (var conn in await _connectionService.GetAllAsync(enabledOnly: true))
+        {
+            result.Add((conn, _clientFactory.Create(conn)));
+        }
+        return result;
+    }
+
+    private async Task<IActionsApiClient?> GetClientAsync(int connectionId)
+    {
+        foreach (var (conn, client) in await GetClientsAsync())
+        {
+            if (conn.Id == connectionId || connectionId <= 0)
+            {
+                return client;
+            }
+        }
+        return _apiClient;
+    }
+
     public async Task<IEnumerable<Repository>> GetRepositoriesAsync()
     {
-        return await _apiClient.GetRepositoriesAsync();
+        var result = new List<Repository>();
+        foreach (var (_, client) in await GetClientsAsync())
+        {
+            try
+            {
+                result.AddRange(await client.GetRepositoriesAsync());
+            }
+            catch
+            {
+                // 单个连接失败不影响其它连接
+            }
+        }
+        var merged = result
+            .GroupBy(r => (r.Provider, r.FullName))
+            .Select(g => g.First())
+            .OrderBy(r => r.FullName)
+            .ToList();
+
+        // UI 选择用的 Id 需跨连接唯一（真实 API 走 Owner/Name）
+        for (var i = 0; i < merged.Count; i++)
+        {
+            merged[i].Id = i + 1;
+        }
+        return merged;
     }
 
-    public async Task<IEnumerable<Branch>> GetBranchesAsync(string owner, string repo)
+    public async Task<IEnumerable<Branch>> GetBranchesAsync(string owner, string repo, int connectionId = 0)
     {
-        return await _apiClient.GetBranchesAsync(owner, repo);
+        var client = await GetClientAsync(connectionId);
+        return client == null ? Enumerable.Empty<Branch>() : await client.GetBranchesAsync(owner, repo);
     }
 
-    public async Task<IEnumerable<Ref>> GetRefsAsync(string owner, string repo)
+    public async Task<IEnumerable<Ref>> GetRefsAsync(string owner, string repo, int connectionId = 0)
     {
-        return await _apiClient.GetRefsAsync(owner, repo);
+        var client = await GetClientAsync(connectionId);
+        return client == null ? Enumerable.Empty<Ref>() : await client.GetRefsAsync(owner, repo);
     }
 
-    public async Task<IEnumerable<Workflow>> GetWorkflowsAsync(string owner, string repo)
+    public async Task<IEnumerable<Workflow>> GetWorkflowsAsync(string owner, string repo, int connectionId = 0)
     {
-        return await _apiClient.GetWorkflowsAsync(owner, repo);
+        var client = await GetClientAsync(connectionId);
+        return client == null ? Enumerable.Empty<Workflow>() : await client.GetWorkflowsAsync(owner, repo);
     }
 
     /// <summary>
-    /// 获取工作流的 inputs 定义
+    /// 获取工作流的 inputs 定义（Gitea / GitHub 通用 workflow_dispatch 结构）
     /// </summary>
-    public async Task<List<WorkflowInput>> GetWorkflowInputsAsync(string owner, string repo, string workflowPath)
+    public async Task<List<WorkflowInput>> GetWorkflowInputsAsync(string owner, string repo, string workflowPath, int connectionId = 0)
     {
         try
         {
-            var yamlContent = await _apiClient.GetWorkflowFileContentAsync(owner, repo, workflowPath);
+            var client = await GetClientAsync(connectionId);
+            if (client == null) return new List<WorkflowInput>();
+
+            var yamlContent = await client.GetWorkflowFileContentAsync(owner, repo, workflowPath);
             if (string.IsNullOrEmpty(yamlContent))
             {
                 return new List<WorkflowInput>();
@@ -126,18 +218,22 @@ public class WorkflowService
         return repositories.FirstOrDefault(r => r.FullName.Equals(fullName, StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task<Ref?> GetRefAsync(string owner, string repo, string @ref)
+    public async Task<Ref?> GetRefAsync(string owner, string repo, string @ref, int connectionId = 0)
     {
-        return await _apiClient.GetRefAsync(owner, repo, @ref);
+        var client = await GetClientAsync(connectionId);
+        return client == null ? null : await client.GetRefAsync(owner, repo, @ref);
     }
 
     public async Task<WorkflowRunHistory?> TriggerWorkflowAsync(string owner, string repo, Workflow workflow, Ref @ref, string triggerType, Dictionary<string, string>? inputs = null)
     {
-        await _apiClient.TriggerWorkflowAsync(owner, repo, workflow.Id, @ref.Name, inputs);
+        var client = await GetClientAsync(workflow.ConnectionId);
+        if (client == null) return null;
+
+        await client.TriggerWorkflowAsync(owner, repo, workflow.Id, @ref.Name, inputs);
 
         await Task.Delay(TimeSpan.FromSeconds(5));
 
-        var runs = await _apiClient.GetWorkflowRunsAsync(owner, repo, headSha: @ref.CommitSha, @event: "workflow_dispatch", page: 1, limit: 1);
+        var runs = await client.GetWorkflowRunsAsync(owner, repo, headSha: @ref.CommitSha, @event: "workflow_dispatch", page: 1, limit: 1);
         var run = runs.FirstOrDefault();
 
         if (_dbContext != null && run != null)
@@ -165,6 +261,8 @@ public class WorkflowService
                 EndedAt = run.Status == "completed" ? run.UpdatedAt : null,
                 TriggerType = triggerType,
                 Inputs = inputsJson,
+                ConnectionId = workflow.ConnectionId,
+                Provider = workflow.Provider,
             };
 
             _dbContext.WorkflowRunHistories.Add(history);
@@ -176,14 +274,16 @@ public class WorkflowService
         return null;
     }
 
-    public virtual async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId)
+    public virtual async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId, int connectionId = 0)
     {
-        return await _apiClient.GetWorkflowRunAsync(owner, repo, runId);
+        var client = await GetClientAsync(connectionId);
+        return client == null ? null : await client.GetWorkflowRunAsync(owner, repo, runId);
     }
 
-    public async Task<IEnumerable<WorkflowRun>> GetWorkflowRunsAsync(string owner, string repo)
+    public async Task<IEnumerable<WorkflowRun>> GetWorkflowRunsAsync(string owner, string repo, int connectionId = 0)
     {
-        return await _apiClient.GetWorkflowRunsAsync(owner, repo);
+        var client = await GetClientAsync(connectionId);
+        return client == null ? Enumerable.Empty<WorkflowRun>() : await client.GetWorkflowRunsAsync(owner, repo);
     }
 
     public async Task<(IEnumerable<WorkflowRunHistory>, int)> GetWorkflowRunHistoriesAsync(int page = 1, int pageSize = 10, string? filter = null)
@@ -197,10 +297,10 @@ public class WorkflowService
 
         if (!string.IsNullOrEmpty(filter))
         {
-            query = query.Where(h => 
-                h.WorkflowName.Contains(filter) || 
-                h.Repo.Contains(filter) || 
-                h.Ref.Contains(filter) || 
+            query = query.Where(h =>
+                h.WorkflowName.Contains(filter) ||
+                h.Repo.Contains(filter) ||
+                h.Ref.Contains(filter) ||
                 h.Status.Contains(filter)
             );
         }
@@ -319,9 +419,6 @@ public class WorkflowService
             .ToListAsync();
     }
 
-    /// <summary>
-    /// 获取所有工作流触发模板
-    /// </summary>
     public async Task<IEnumerable<WorkflowTriggerTemplate>> GetTemplatesAsync()
     {
         if (_dbContext == null)
@@ -334,9 +431,6 @@ public class WorkflowService
             .ToListAsync();
     }
 
-    /// <summary>
-    /// 保存工作流触发模板
-    /// </summary>
     public async Task<WorkflowTriggerTemplate?> SaveTemplateAsync(string name, WorkflowRunHistory history)
     {
         if (_dbContext == null)
@@ -352,7 +446,9 @@ public class WorkflowService
             WorkflowId = history.WorkflowId,
             WorkflowName = history.WorkflowName,
             Ref = history.Ref,
-            CreatedAt = DateTime.Now
+            CreatedAt = DateTime.Now,
+            ConnectionId = history.ConnectionId,
+            Provider = history.Provider,
         };
 
         _dbContext.WorkflowTriggerTemplates.Add(template);
@@ -361,9 +457,6 @@ public class WorkflowService
         return template;
     }
 
-    /// <summary>
-    /// 删除工作流触发模板
-    /// </summary>
     public async Task<bool> DeleteTemplateAsync(int id)
     {
         if (_dbContext == null)
@@ -383,9 +476,6 @@ public class WorkflowService
         return true;
     }
 
-    /// <summary>
-    /// 更新模板的最后触发时间
-    /// </summary>
     public async Task<bool> UpdateTemplateTriggerTimeAsync(int templateId)
     {
         if (_dbContext == null)

@@ -34,7 +34,10 @@
                         <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
                             <td class="px-4 py-3 text-sm text-gray-800">@history.Id</td>
                             <td class="px-4 py-3 text-sm text-gray-800">@history.WorkflowName</td>
-                            <td class="px-4 py-3 text-sm text-gray-500">@history.Repo</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">
+                                <span class="px-1.5 py-0.5 text-xs rounded-full @(history.Provider == MinGo.Gitea.Core.Models.ProviderType.GitHub ? "bg-gray-800 text-white" : "bg-green-100 text-green-800") mr-1">@(history.Provider == MinGo.Gitea.Core.Models.ProviderType.GitHub ? "GH" : "GT")</span>
+                                @history.Repo
+                            </td>
                             <td class="px-4 py-3 text-sm text-gray-500">@history.Ref</td>
                             <td class="px-4 py-3">
                                 <StatusBadge Status="@history.Status.ToLower()" />

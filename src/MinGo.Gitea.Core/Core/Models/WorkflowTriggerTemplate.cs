@@ -6,6 +6,9 @@ namespace MinGo.Gitea.Core.Models;
 public class WorkflowTriggerTemplate
 {
     public int Id { get; set; }
+    /// <summary>所属连接（ProviderConnections.Id）</summary>
+    public int ConnectionId { get; set; }
+    public ProviderType Provider { get; set; } = ProviderType.Gitea;
 
     /// <summary>
     /// 模板名称

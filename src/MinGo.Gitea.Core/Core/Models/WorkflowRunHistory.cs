@@ -3,6 +3,9 @@ namespace MinGo.Gitea.Core.Models;
 public class WorkflowRunHistory
 {
     public int Id { get; set; }
+    /// <summary>所属连接（ProviderConnections.Id），0 表示历史遗留</summary>
+    public int ConnectionId { get; set; }
+    public ProviderType Provider { get; set; } = ProviderType.Gitea;
     public required string Owner { get; set; }
     public required string Repo { get; set; }
     public required string WorkflowId { get; set; }

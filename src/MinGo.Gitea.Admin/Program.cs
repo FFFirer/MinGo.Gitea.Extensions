@@ -26,6 +26,8 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("GiteaApiClient");
+builder.Services.AddHttpClient("GitHubApiClient");
 
 // 配置数据库
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -35,35 +37,43 @@ var dbPath = Path.Combine(dataDirectory, "gitea_extensions.db");
 builder.Services.AddDbContext<GiteaExtensionsDbContext>(options =>
     options.UseSqlite($"Data Source={dbPath}", s => s.MigrationsAssembly("MinGo.Gitea.Core")));
 
-// 注册 Gitea 配置服务
+// 连接配置（多 Gitea / GitHub）
+builder.Services.AddScoped<ProviderConnectionService>();
 builder.Services.AddScoped<GiteaConfigService>();
 
-// 注册 Gitea API 客户端工厂
+// Actions 客户端工厂（按连接创建 Gitea / GitHub）
+builder.Services.AddScoped<ActionsClientFactory>();
+
+// 兼容：单客户端工厂
 builder.Services.AddScoped<GiteaApiClientFactory>();
 
-// 注册 Gitea API 客户端
-builder.Services.AddScoped<MinGo.Gitea.Core.Interfaces.IGiteaApiClient>(provider =>
+// 注册默认 IActionsApiClient（取第一个启用连接；无配置时使用空 Gitea 客户端）
+builder.Services.AddScoped<MinGo.Gitea.Core.Interfaces.IActionsApiClient>(provider =>
 {
-    var factory = provider.GetRequiredService<GiteaApiClientFactory>();
+    var factory = provider.GetRequiredService<ActionsClientFactory>();
+    var configService = provider.GetRequiredService<ProviderConnectionService>();
     try
     {
-        return factory.Create();
+        var config = configService.GetConfigAsync().GetAwaiter().GetResult();
+        if (config != null)
+        {
+            return factory.Create(config);
+        }
     }
     catch
     {
-        // 如果配置不存在，使用默认配置
-        var httpClient = provider.GetRequiredService<HttpClient>();
-        var config = new GiteaConfig
-        {
-            ServerUrl = "",
-            Token = "",
-            Username = ""
-        };
-        return factory.Create(config);
+        // ignore
     }
+
+    return factory.Create(new ProviderConnection
+    {
+        ServerUrl = "",
+        Token = "",
+        Username = ""
+    });
 });
 
-// 注册工作流服务
+// 注册工作流服务（多连接）
 builder.Services.AddScoped<WorkflowService>();
 
 // 注册工作流状态更新服务
@@ -82,14 +92,16 @@ using (var scope = app.Services.CreateScope())
         var dbContext = scope.ServiceProvider.GetRequiredService<GiteaExtensionsDbContext>();
         if (app.Environment.IsDevelopment())
         {
-            // 开发环境自动应用迁移
             dbContext.Database.Migrate();
         }
         else
         {
-            // 生产环境仅确保数据库存在
             dbContext.Database.EnsureCreated();
         }
+
+        // 确保 ProviderConnections 表存在（兼容旧库）
+        var connService = scope.ServiceProvider.GetRequiredService<ProviderConnectionService>();
+        connService.EnsureDefaultSchemaAsync().GetAwaiter().GetResult();
     }
     catch (Exception ex)
     {
@@ -101,7 +113,6 @@ using (var scope = app.Services.CreateScope())
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -125,7 +136,7 @@ public class WorkflowStatusUpdateBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<WorkflowStatusUpdateBackgroundService> _logger;
-    private readonly int _updateIntervalMinutes = 1; // 默认检查间隔为1分钟
+    private readonly int _updateIntervalMinutes = 1;
 
     public WorkflowStatusUpdateBackgroundService(IServiceProvider serviceProvider, ILogger<WorkflowStatusUpdateBackgroundService> logger)
     {
@@ -154,7 +165,6 @@ public class WorkflowStatusUpdateBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error in workflow status update background service");
             }
 
-            // 等待指定的间隔时间
             await Task.Delay(TimeSpan.FromMinutes(_updateIntervalMinutes), stoppingToken);
         }
 

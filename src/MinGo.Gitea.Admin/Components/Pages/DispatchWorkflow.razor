@@ -23,7 +23,7 @@
                     <option value="">请选择仓库</option>
                     @foreach (var repo in Repositories)
                     {
-                        <option value="@repo.Id">@($"{repo.Owner}/{repo.Name}") </option>
+                        <option value="@repo.Id">@($"[{(repo.Provider == MinGo.Gitea.Core.Models.ProviderType.GitHub ? "GitHub" : "Gitea")}] {repo.Owner}/{repo.Name}")</option>
                     }
                 </select>
             </div>
@@ -290,7 +290,7 @@
             if(repo is null){
                 return;
             }
-            var workflows = await WorkflowService.GetWorkflowsAsync(repo.Owner, repo.Name);
+            var workflows = await WorkflowService.GetWorkflowsAsync(repo.Owner, repo.Name, repo.ConnectionId);
             Workflows = workflows.ToList();
         }
         catch (Exception ex)
@@ -337,7 +337,7 @@
             {
                 return;
             }
-            var inputs = await WorkflowService.GetWorkflowInputsAsync(repo.Owner, repo.Name, SelectedWorkflowPath);
+            var inputs = await WorkflowService.GetWorkflowInputsAsync(repo.Owner, repo.Name, SelectedWorkflowPath, repo.ConnectionId);
             WorkflowInputs = inputs;
             
             foreach (var input in WorkflowInputs)
@@ -369,7 +369,7 @@
             if(repo is null){
                 return;
             }
-            var refs = await WorkflowService.GetRefsAsync(repo.Owner, repo.Name);
+            var refs = await WorkflowService.GetRefsAsync(repo.Owner, repo.Name, repo.ConnectionId);
             Refs = refs.ToList();
         }
         catch (Exception ex)

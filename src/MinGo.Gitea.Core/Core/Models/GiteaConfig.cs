@@ -1,9 +1,10 @@
 namespace MinGo.Gitea.Core.Models;
 
-public class GiteaConfig
+/// <summary>兼容旧代码的 Gitea 连接配置（等价 ProviderConnection + Gitea）</summary>
+public class GiteaConfig : ProviderConnection
 {
-    public int Id { get; set; }
-    public required string ServerUrl { get; set; }
-    public required string Token { get; set; }
-    public required string Username { get; set; }
+    public GiteaConfig()
+    {
+        ProviderType = ProviderType.Gitea;
+    }
 }

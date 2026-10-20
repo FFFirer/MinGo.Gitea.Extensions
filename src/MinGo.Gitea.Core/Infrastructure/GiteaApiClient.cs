@@ -10,9 +10,12 @@ namespace MinGo.Gitea.Infrastructure;
 public class GiteaApiClient : IGiteaApiClient
 {
     private readonly HttpClient _httpClient;
-    private readonly GiteaConfig _config;
+    private readonly ProviderConnection _config;
 
-    public GiteaApiClient(IHttpClientFactory factory, GiteaConfig config)
+    public ProviderType ProviderType => ProviderType.Gitea;
+    public int ConnectionId => _config.Id;
+
+    public GiteaApiClient(IHttpClientFactory factory, ProviderConnection config)
     {
         _httpClient = factory.CreateClient("GiteaApiClient");
         _config = config;
@@ -20,8 +23,8 @@ public class GiteaApiClient : IGiteaApiClient
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string endpoint)
     {
-        ArgumentNullException.ThrowIfNull(_config.ServerUrl, $"{nameof(GiteaConfig)}:{nameof(GiteaConfig.ServerUrl)}");
-        ArgumentNullException.ThrowIfNull(_config.Token, $"{nameof(GiteaConfig)}:{nameof(GiteaConfig.Token)}");
+        ArgumentNullException.ThrowIfNull(_config.ServerUrl, $"{nameof(ProviderConnection)}:{nameof(ProviderConnection.ServerUrl)}");
+        ArgumentNullException.ThrowIfNull(_config.Token, $"{nameof(ProviderConnection)}:{nameof(ProviderConnection.Token)}");
 
         var uri = new Uri(new Uri(_config.ServerUrl), endpoint);
         var request = new HttpRequestMessage(method, uri);
@@ -58,7 +61,9 @@ public class GiteaApiClient : IGiteaApiClient
             Name = r.Name,
             FullName = r.FullName,
             Owner = r.Owner.Login,
-            HtmlUrl = r.HtmlUrl
+            HtmlUrl = r.HtmlUrl,
+            ConnectionId = _config.Id,
+            Provider = ProviderType.Gitea
         }) ?? Enumerable.Empty<Repository>();
     }
 
@@ -110,7 +115,9 @@ public class GiteaApiClient : IGiteaApiClient
             Id = w.id,
             Name = w.name,
             Path = w.path,
-            State = w.state
+            State = w.state,
+            ConnectionId = _config.Id,
+            Provider = ProviderType.Gitea
         }) ?? Enumerable.Empty<Workflow>();
     }
 
@@ -162,17 +169,7 @@ public class GiteaApiClient : IGiteaApiClient
             return null;
         }
 
-        return new WorkflowRun
-        {
-            Id = (int)run.id,
-            Name = run.display_title ?? string.Empty,
-            Status = run.status ?? string.Empty,
-            Conclusion = run.conclusion ?? string.Empty,
-            CreatedAt = run.started_at != null ? DateTime.Parse(run.started_at) : DateTime.MinValue,
-            UpdatedAt = run.completed_at != null ? DateTime.Parse(run.completed_at) : DateTime.MinValue,
-            Ref = run.head_branch ?? string.Empty,
-            CommitSha = run.head_sha ?? string.Empty
-        };
+        return MapRun(run);
     }
 
     public async Task<IEnumerable<WorkflowRun>> GetWorkflowRunsAsync(string owner, string repo, int? page = null, int? limit = null, string? status = null, string? branch = null, string? @event = null, int? workflowId = null, int? actorId = null, string? created = null, string? headSha = null)
@@ -200,17 +197,7 @@ public class GiteaApiClient : IGiteaApiClient
         var content = await response.Content.ReadAsStringAsync();
         var result = JsonConvert.DeserializeObject<GiteaWorkflowRunListResponse>(content);
 
-        return result?.workflow_runs?.Select(r => new WorkflowRun
-        {
-            Id = (int)r.id,
-            Name = r.display_title ?? string.Empty,
-            Status = r.status ?? string.Empty,
-            Conclusion = r.conclusion ?? string.Empty,
-            CreatedAt = r.started_at != null ? DateTime.Parse(r.started_at) : DateTime.MinValue,
-            UpdatedAt = r.completed_at != null ? DateTime.Parse(r.completed_at) : DateTime.MinValue,
-            Ref = r.head_branch ?? string.Empty,
-            CommitSha = r.head_sha ?? string.Empty
-        }) ?? [];
+        return result?.workflow_runs?.Select(MapRun) ?? [];
     }
 
     public async Task<Ref?> GetRefAsync(string owner, string repo, string @ref)
@@ -239,4 +226,18 @@ public class GiteaApiClient : IGiteaApiClient
             Commit = new() { Sha = giteaRef.Object.Sha, Url = giteaRef.Object.Url }
         };
     }
+
+    private WorkflowRun MapRun(GiteaWorkflowRun r) => new()
+    {
+        Id = (int)r.id,
+        Name = r.display_title ?? string.Empty,
+        Status = r.status ?? string.Empty,
+        Conclusion = r.conclusion ?? string.Empty,
+        CreatedAt = r.started_at != null ? DateTime.Parse(r.started_at) : DateTime.MinValue,
+        UpdatedAt = r.completed_at != null ? DateTime.Parse(r.completed_at) : DateTime.MinValue,
+        Ref = r.head_branch ?? string.Empty,
+        CommitSha = r.head_sha ?? string.Empty,
+        ConnectionId = _config.Id,
+        Provider = ProviderType.Gitea
+    };
 }
