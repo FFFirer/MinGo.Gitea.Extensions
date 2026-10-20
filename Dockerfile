@@ -17,7 +17,7 @@ RUN pnpm config set registry https://registry.npmmirror.com
 WORKDIR /app
 
 # 复制 package.json 和 pnpm-lock.yaml 文件，用于缓存
-COPY src/MinGo.Gitea.Admin/package.json src/MinGo.Gitea.Admin/pnpm-lock.yaml .
+COPY src/MinGo.Gitea.Admin/package.json src/MinGo.Gitea.Admin/pnpm-lock.yaml ./
 
 # 还原 npm 包（使用缓存）
 RUN pnpm install --frozen-lockfile
@@ -29,7 +29,11 @@ COPY src/MinGo.Gitea.Admin .
 RUN pnpm run build
 
 # 第二阶段：构建 .NET 应用
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build-base
+
+RUN dotnet tool install -g dotnet-ef --version 10.0.4
+
+FROM backend-build-base AS backend-build
 
 # 设置工作目录
 WORKDIR /app
@@ -48,18 +52,16 @@ RUN dotnet restore
 # 复制全部项目文件
 COPY . .
 
-# 复制前端构建产物
-COPY --from=frontend-build /app/wwwroot ./src/MinGo.Gitea.Admin/wwwroot
-
 # 使用 Release 编译项目
 RUN dotnet build --configuration Release
-
 
 # 发布 Web 站点
 RUN dotnet publish src/MinGo.Gitea.Admin --configuration Release --no-build --output /app/publish
 
 # 发布efbundle
 WORKDIR /app/src/MinGo.Gitea.Core
+ENV PATH="$PATH:/root/.dotnet/tools"
+RUN dotnet tool list
 RUN dotnet ef migrations bundle --configuration Release --output /app/publish/efbundle -f
 
 # 第三阶段：发布
@@ -70,16 +72,11 @@ WORKDIR /app
 
 # 复制发布文件
 COPY --from=backend-build /app/publish .
+# 复制前端构建产物
+COPY --from=frontend-build /app/wwwroot ./wwwroot
 
 # 创建数据目录（如果需要）
 RUN mkdir -p /app/data
-
-# 暴露端口
-EXPOSE 8080
-
-# 设置环境变量
-ENV ASPNETCORE_URLS=http://+:8080
-ENV ASPNETCORE_ENVIRONMENT=Production
 
 # 运行应用
 ENTRYPOINT ["dotnet", "MinGo.Gitea.Admin.dll"]
