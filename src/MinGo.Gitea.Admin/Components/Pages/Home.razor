@@ -1,34 +1,34 @@
 @page "/"
 
-<h1 class="text-2xl font-semibold text-gray-800 mb-6">工作流执行概览</h1>
+<h1 class="text-2xl font-semibold text-ink mb-6">工作流执行概览</h1>
 
 @if (isLoading)
 {
     <div class="flex items-center justify-center h-64">
-        <div class="text-gray-500">加载中...</div>
+        <div class="text-ink-muted">加载中...</div>
     </div>
 }
 else
 {
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card Title="总执行次数">
-            <div class="text-3xl font-semibold text-gray-800 mt-2">@totalRunCount</div>
-            <div class="text-xs text-gray-500 mt-1">本月执行 @monthlyRunCount 次</div>
+            <div class="text-3xl font-semibold text-ink mt-2">@totalRunCount</div>
+            <div class="text-xs text-ink-muted mt-1">本月执行 @monthlyRunCount 次</div>
         </Card>
         
         <Card Title="成功率">
-            <div class="text-3xl font-semibold text-green-600 mt-2">@successRate%</div>
-            <div class="text-xs text-gray-500 mt-1">@successfulRuns/@totalRunCount 成功</div>
+            <div class="text-3xl font-semibold text-success mt-2">@successRate%</div>
+            <div class="text-xs text-ink-muted mt-1">@successfulRuns/@totalRunCount 成功</div>
         </Card>
         
         <Card Title="平均执行时间">
-            <div class="text-3xl font-semibold text-gray-800 mt-2">@averageExecutionTime</div>
-            <div class="text-xs text-gray-500 mt-1">最近 10 次执行</div>
+            <div class="text-3xl font-semibold text-ink mt-2">@averageExecutionTime</div>
+            <div class="text-xs text-ink-muted mt-1">最近 10 次执行</div>
         </Card>
         
         <Card Title="运行中">
-            <div class="text-3xl font-semibold text-yellow-600 mt-2">@runningRunCount</div>
-            <div class="text-xs text-gray-500 mt-1">当前正在执行</div>
+            <div class="text-3xl font-semibold text-warn mt-2">@runningRunCount</div>
+            <div class="text-xs text-ink-muted mt-1">当前正在执行</div>
         </Card>
     </div>
 
@@ -36,14 +36,14 @@ else
         <div class="overflow-x-auto">
             <table class="w-full border-collapse">
                 <thead>
-                    <tr class="border-b border-gray-200">
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">工作流</th>
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">仓库</th>
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">状态</th>
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">结果</th>
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">开始时间</th>
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">执行时间</th>
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">操作</th>
+                    <tr class="border-b border-line">
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">工作流</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">仓库</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">状态</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">结果</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">开始时间</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">执行时间</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -51,18 +51,18 @@ else
                     {
                         @foreach (var run in recentRuns)
                         {
-                            <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                                <td class="px-4 py-3 text-sm text-gray-800">@run.WorkflowName</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">@run.Owner/@run.Repo</td>
+                            <tr class="border-b border-line hover:bg-surface-2 transition-colors">
+                                <td class="px-4 py-3 text-sm text-ink">@run.WorkflowName</td>
+                                <td class="px-4 py-3 text-sm text-ink-muted">@run.Owner/@run.Repo</td>
                                 <td class="px-4 py-3">
                                     <StatusBadge Status="@GetStatusType(run.Status)" />
                                 </td>
-                                <td class="px-4 py-3 text-sm text-gray-500">@(string.IsNullOrEmpty(run.Conclusion) ? "-" : run.Conclusion)</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">@run.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">@GetExecutionTime(run)</td>
+                                <td class="px-4 py-3 text-sm text-ink-muted">@(string.IsNullOrEmpty(run.Conclusion) ? "-" : run.Conclusion)</td>
+                                <td class="px-4 py-3 text-sm text-ink-muted">@run.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td class="px-4 py-3 text-sm text-ink-muted">@GetExecutionTime(run)</td>
                                 <td class="px-4 py-3">
-                                    <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors mr-2" @onclick="() => ViewRunDetails(run.Id)">查看</button>
-                                    <button class="text-xs px-2 py-1 bg-blue-500 text-white border border-blue-500 rounded hover:bg-blue-600 transition-colors" @onclick="() => ReRunWorkflow(run)">再执行一次</button>
+                                    <button class="text-xs px-2 py-1 bg-surface border border-line rounded hover:bg-surface-2 transition-colors mr-2" @onclick="() => ViewRunDetails(run.Id)">查看</button>
+                                    <button class="text-xs px-2 py-1 bg-accent-btn text-on-accent border border-accent-btn rounded hover:bg-accent-btn-hover transition-colors" @onclick="() => ReRunWorkflow(run)">再执行一次</button>
                                 </td>
                             </tr>
                         }
@@ -70,7 +70,7 @@ else
                     else
                     {
                         <tr>
-                            <td colspan="7" class="px-4 py-6 text-center text-gray-500">暂无执行记录</td>
+                            <td colspan="7" class="px-4 py-6 text-center text-ink-muted">暂无执行记录</td>
                         </tr>
                     }
                 </tbody>
@@ -82,13 +82,13 @@ else
         <div class="overflow-x-auto">
             <table class="w-full border-collapse">
                 <thead>
-                    <tr class="border-b border-gray-200">
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">模板名称</th>
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">仓库</th>
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">工作流</th>
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">分支</th>
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">最后触发时间</th>
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">操作</th>
+                    <tr class="border-b border-line">
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">模板名称</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">仓库</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">工作流</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">分支</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">最后触发时间</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-ink">操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -96,15 +96,15 @@ else
                     {
                         @foreach (var template in recentTemplates)
                         {
-                            <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                                <td class="px-4 py-3 text-sm text-gray-800">@template.Name</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">@template.Owner/@template.Repo</td>
-                                <td class="px-4 py-3 text-sm text-gray-800">@template.WorkflowName</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">@template.Ref</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">@(template.LastTriggeredAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
+                            <tr class="border-b border-line hover:bg-surface-2 transition-colors">
+                                <td class="px-4 py-3 text-sm text-ink">@template.Name</td>
+                                <td class="px-4 py-3 text-sm text-ink-muted">@template.Owner/@template.Repo</td>
+                                <td class="px-4 py-3 text-sm text-ink">@template.WorkflowName</td>
+                                <td class="px-4 py-3 text-sm text-ink-muted">@template.Ref</td>
+                                <td class="px-4 py-3 text-sm text-ink-muted">@(template.LastTriggeredAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
                                 <td class="px-4 py-3">
-                                    <button class="text-xs px-2 py-1 bg-blue-500 text-white border border-blue-500 rounded hover:bg-blue-600 transition-colors mr-2" @onclick="() => ExecuteTemplate(template)">执行</button>
-                                    <button class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" @onclick="() => ViewTemplate(template)">查看</button>
+                                    <button class="text-xs px-2 py-1 bg-accent-btn text-on-accent border border-accent-btn rounded hover:bg-accent-btn-hover transition-colors mr-2" @onclick="() => ExecuteTemplate(template)">执行</button>
+                                    <button class="text-xs px-2 py-1 bg-surface border border-line rounded hover:bg-surface-2 transition-colors" @onclick="() => ViewTemplate(template)">查看</button>
                                 </td>
                             </tr>
                         }
@@ -112,7 +112,7 @@ else
                     else
                     {
                         <tr>
-                            <td colspan="6" class="px-4 py-6 text-center text-gray-500">暂无触发模板</td>
+                            <td colspan="6" class="px-4 py-6 text-center text-ink-muted">暂无触发模板</td>
                         </tr>
                     }
                 </tbody>

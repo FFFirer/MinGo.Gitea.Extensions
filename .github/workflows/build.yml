@@ -1,0 +1,64 @@
+name: Build and Push Image
+
+on:
+  release:
+    types: [published, prereleased, released]
+  workflow_dispatch:
+
+env:
+  CONTAINER_REGISTRY: ghcr.io
+  IMAGE_NAME: mingo-workflows
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: check env
+        run: |
+          echo "HTTP_PROXY=$HTTP_PROXY"
+          echo "HTTPS_PROXY=$HTTPS_PROXY"
+          echo "NO_PROXY=$NO_PROXY"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version
+        id: extract_version
+        run: |
+          # GHCR 镜像路径必须小写
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_REPO=${{ env.CONTAINER_REGISTRY }}/${OWNER}/${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
+
+          if [ "${{ github.event_name }}" == "release" ]; then
+            VERSION="${GITHUB_REF#refs/*/}"
+          else
+            TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+            VERSION="dev-${GITHUB_SHA:0:7}-${TIMESTAMP}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_REPO }}:${{ env.VERSION }}
+            ${{ env.IMAGE_REPO }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

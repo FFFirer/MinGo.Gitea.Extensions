@@ -21,7 +21,7 @@
 
 
 #components-reconnect-modal {
-    background-color: white;
+    background-color: var(--c-surface);
     width: 20rem;
     margin: 20vh auto;
     padding: 2rem;
@@ -90,18 +90,18 @@
 
 #components-reconnect-modal button {
     border: 0;
-    background-color: #6b9ed2;
-    color: white;
+    background-color: var(--c-accent);
+    color: var(--c-ink-on-accent);
     padding: 4px 24px;
     border-radius: 4px;
 }
 
     #components-reconnect-modal button:hover {
-        background-color: #3b6ea2;
+        background-color: var(--c-accent-strong);
     }
 
     #components-reconnect-modal button:active {
-        background-color: #6b9ed2;
+        background-color: var(--c-accent);
     }
 
 .components-rejoining-animation {

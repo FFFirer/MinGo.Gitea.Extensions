@@ -1,15 +1,150 @@
 @import "tailwindcss";
 @config "./tailwind.config.js";
 
-/* 设计规范变量 */
+/* Class-based dark mode for Tailwind utilities */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Semantic palette (switches with html.dark) ── */
 :root {
-  --bg-light: #f5f7fa;
-  --surface-white: #ffffff;
-  --primary: #0052cc;
-  --primary-dark: #0747a6;
-  --text-primary: #172b4d;
-  --text-secondary: #5e6c84;
-  --text-disabled: #a5adba;
+  /* surfaces */
+  --c-app: #f5f7fa;
+  --c-surface: #ffffff;
+  --c-surface-2: #f0f2f5;
+  --c-surface-3: #e6e9ee;
+
+  /* ink */
+  --c-ink: #172b4d;
+  --c-ink-muted: #5e6c84;
+  --c-ink-faint: #a5adba;
+  --c-on-accent: #ffffff;
+
+  /* lines */
+  --c-line: #dfe1e6;
+  --c-line-strong: #c1c7d0;
+
+  /* accent — ink is theme-aware text; btn is white-text-safe fill */
+  --c-accent: #0052cc;
+  --c-accent-soft: #e9f2ff;
+  --c-accent-btn: #0052cc;
+  --c-accent-btn-hover: #0747a6;
+
+  /* status ink (text / soft-state foreground) */
+  --c-success: #0b7a48;
+  --c-warn: #b38600;
+  --c-danger: #c9372c;
+  --c-info: #0052cc;
+
+  /* status soft backgrounds */
+  --c-success-soft: #e3fcef;
+  --c-warn-soft: #fff7d6;
+  --c-danger-soft: #ffeceb;
+  --c-info-soft: #e9f2ff;
+
+  /* status solid fills (white-text-safe) */
+  --c-success-btn: #0d8a52;
+  --c-success-btn-hover: #0b7a48;
+  --c-danger-btn: #c9372c;
+  --c-danger-btn-hover: #b82a20;
+
+  --c-shadow: 0 1px 2px rgba(9, 30, 66, 0.08);
+  --c-shadow-lg: 0 8px 16px rgba(9, 30, 66, 0.12);
+
+  color-scheme: light;
+}
+
+html.dark {
+  --c-app: #121826;
+  --c-surface: #1c2333;
+  --c-surface-2: #252d3f;
+  --c-surface-3: #2f3850;
+
+  --c-ink: #e8ecf4;
+  --c-ink-muted: #9aa7bd;
+  --c-ink-faint: #6b7a94;
+  --c-on-accent: #ffffff;
+
+  --c-line: #2f3850;
+  --c-line-strong: #3d4760;
+
+  --c-accent: #4c9aff;
+  --c-accent-soft: #1c2f4d;
+  --c-accent-btn: #0c66e4;
+  --c-accent-btn-hover: #0052cc;
+
+  --c-success: #4bce97;
+  --c-warn: #e2b203;
+  --c-danger: #f87168;
+  --c-info: #4c9aff;
+
+  --c-success-soft: #1c3329;
+  --c-warn-soft: #3d3010;
+  --c-danger-soft: #3d2222;
+  --c-info-soft: #1c2f4d;
+
+  --c-success-btn: #12955c;
+  --c-success-btn-hover: #0f8b55;
+  --c-danger-btn: #d1443b;
+  --c-danger-btn-hover: #b82a20;
+
+  --c-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --c-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.45);
+
+  color-scheme: dark;
+}
+
+/* Map palette into Tailwind v4 theme tokens */
+@theme {
+  --color-app: var(--c-app);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-surface-3: var(--c-surface-3);
+
+  --color-ink: var(--c-ink);
+  --color-ink-muted: var(--c-ink-muted);
+  --color-ink-faint: var(--c-ink-faint);
+  --color-on-accent: var(--c-on-accent);
+
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+
+  --color-accent: var(--c-accent);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-accent-btn: var(--c-accent-btn);
+  --color-accent-btn-hover: var(--c-accent-btn-hover);
+
+  --color-success: var(--c-success);
+  --color-success-soft: var(--c-success-soft);
+  --color-success-btn: var(--c-success-btn);
+  --color-success-btn-hover: var(--c-success-btn-hover);
+
+  --color-warn: var(--c-warn);
+  --color-warn-soft: var(--c-warn-soft);
+
+  --color-danger: var(--c-danger);
+  --color-danger-soft: var(--c-danger-soft);
+  --color-danger-btn: var(--c-danger-btn);
+  --color-danger-btn-hover: var(--c-danger-btn-hover);
+
+  --color-info: var(--c-info);
+  --color-info-soft: var(--c-info-soft);
+}
+
+/* Page-level defaults */
+html,
+body {
+  background-color: var(--c-app);
+  color: var(--c-ink);
+}
+
+/* Design tokens kept for existing custom CSS */
+:root {
+  --bg-light: var(--c-app);
+  --surface-white: var(--c-surface);
+  --primary: var(--c-accent-btn);
+  --primary-dark: var(--c-accent-btn-hover);
+  --text-primary: var(--c-ink);
+  --text-secondary: var(--c-ink-muted);
+  --text-disabled: var(--c-ink-faint);
   --elevation-1: 0 2px 4px 0 rgba(0, 0, 0, 0.05);
   --elevation-2: 0 6px 12px 0 rgba(0, 0, 0, 0.08);
   --elevation-3: 0 16px 24px 0 rgba(0, 0, 0, 0.12);
@@ -20,7 +155,7 @@
 }
 
 .step-number {
-  @apply w-8 h-8 flex items-center justify-center rounded-full text-white font-bold;
+  @apply w-8 h-8 flex items-center justify-center rounded-full text-on-accent font-bold;
   margin: 0 auto 8px;
 }
 

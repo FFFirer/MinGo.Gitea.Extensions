@@ -3,7 +3,6 @@ using MinGo.Gitea.Core.Models;
 using MinGo.Gitea.Infrastructure;
 using MinGo.Gitea.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -20,20 +19,19 @@ public class WorkflowService
     private readonly ProviderConnectionService? _connectionService;
     private readonly GiteaExtensionsDbContext? _dbContext;
 
-    /// <summary>测试/单连接构造</summary>
-    public WorkflowService(IActionsApiClient? apiClient, GiteaExtensionsDbContext? dbContext = null)
-    {
-        _apiClient = apiClient;
-        _dbContext = dbContext;
-    }
+    /// <summary>供 Moq/Castle 代理使用；非 public，MS.DI 不会选中。</summary>
+    protected WorkflowService() { }
 
-    /// <summary>多连接 DI 构造</summary>
-    [ActivatorUtilitiesConstructor]
+    /// <summary>
+    /// DI / 测试共用构造。多连接依赖齐全时优先走多连接；否则回退到单客户端。
+    /// </summary>
     public WorkflowService(
-        ActionsClientFactory clientFactory,
-        ProviderConnectionService connectionService,
+        IActionsApiClient? apiClient = null,
+        ActionsClientFactory? clientFactory = null,
+        ProviderConnectionService? connectionService = null,
         GiteaExtensionsDbContext? dbContext = null)
     {
+        _apiClient = apiClient;
         _clientFactory = clientFactory;
         _connectionService = connectionService;
         _dbContext = dbContext;
@@ -42,6 +40,15 @@ public class WorkflowService
     private async Task<List<(ProviderConnection Connection, IActionsApiClient Client)>> GetClientsAsync()
     {
         var result = new List<(ProviderConnection, IActionsApiClient)>();
+
+        if (_connectionService != null && _clientFactory != null)
+        {
+            foreach (var conn in await _connectionService.GetAllAsync(enabledOnly: true))
+            {
+                result.Add((conn, _clientFactory.Create(conn)));
+            }
+            return result;
+        }
 
         if (_apiClient != null)
         {
@@ -58,15 +65,6 @@ public class WorkflowService
             return result;
         }
 
-        if (_connectionService == null || _clientFactory == null)
-        {
-            return result;
-        }
-
-        foreach (var conn in await _connectionService.GetAllAsync(enabledOnly: true))
-        {
-            result.Add((conn, _clientFactory.Create(conn)));
-        }
         return result;
     }
 

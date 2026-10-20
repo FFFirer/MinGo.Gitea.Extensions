@@ -2,37 +2,37 @@
 @inject MinGo.Gitea.Application.Services.ProviderConnectionService ConnectionService
 @inject MinGo.Gitea.Infrastructure.ActionsClientFactory ClientFactory
 
-<h1 class="text-2xl font-semibold text-gray-800 mb-6">连接管理</h1>
+<h1 class="text-2xl font-semibold text-ink mb-6">连接管理</h1>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <Card Title="已有连接">
         @if (Connections.Count == 0)
         {
-            <p class="text-gray-500">暂无连接，请在右侧添加 Gitea 或 GitHub 连接。</p>
+            <p class="text-ink-muted">暂无连接，请在右侧添加 Gitea 或 GitHub 连接。</p>
         }
         else
         {
             <div class="space-y-3">
                 @foreach (var c in Connections)
                 {
-                    <div class="flex items-start justify-between border border-gray-200 rounded-md p-3">
+                    <div class="flex items-start justify-between border border-line rounded-md p-3">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 text-xs rounded-full @(c.ProviderType == ProviderType.GitHub ? "bg-gray-800 text-white" : "bg-green-100 text-green-800")">
+                                <span class="px-2 py-0.5 text-xs rounded-full @(c.ProviderType == ProviderType.GitHub ? "bg-ink text-surface" : "bg-success-soft text-success")">
                                     @(c.ProviderType == ProviderType.GitHub ? "GitHub" : "Gitea")
                                 </span>
-                                <span class="font-medium text-gray-800">@c.Name</span>
+                                <span class="font-medium text-ink">@c.Name</span>
                                 @if (!c.IsEnabled)
                                 {
                                     <span class="text-xs text-amber-600">已停用</span>
                                 }
                             </div>
-                            <div class="text-sm text-gray-500 mt-1">@c.ServerUrl</div>
-                            <div class="text-xs text-gray-400">@c.Username</div>
+                            <div class="text-sm text-ink-muted mt-1">@c.ServerUrl</div>
+                            <div class="text-xs text-ink-faint">@c.Username</div>
                         </div>
                         <div class="flex gap-2">
-                            <button class="text-sm text-blue-600 hover:underline" @onclick="() => EditConnection(c)">编辑</button>
-                            <button class="text-sm text-red-600 hover:underline" @onclick="() => DeleteConnection(c.Id)">删除</button>
+                            <button class="text-sm text-accent hover:underline" @onclick="() => EditConnection(c)">编辑</button>
+                            <button class="text-sm text-danger hover:underline" @onclick="() => DeleteConnection(c.Id)">删除</button>
                         </div>
                     </div>
                 }
@@ -42,43 +42,43 @@
 
     <Card Title="@(EditingId > 0 ? "编辑连接" : "添加连接")">
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2">平台</label>
+            <label class="block text-sm font-medium text-ink mb-2">平台</label>
             <div class="flex gap-2">
-                <button type="button" class="px-3 py-2 rounded-md border @(FormProvider == ProviderType.Gitea ? "bg-blue-600 text-white border-blue-600" : "border-gray-300")"
+                <button type="button" class="px-3 py-2 rounded-md border @(FormProvider == ProviderType.Gitea ? "bg-accent-btn text-on-accent border-accent-btn" : "border-line")"
                         @onclick="() => FormProvider = ProviderType.Gitea">Gitea</button>
-                <button type="button" class="px-3 py-2 rounded-md border @(FormProvider == ProviderType.GitHub ? "bg-blue-600 text-white border-blue-600" : "border-gray-300")"
+                <button type="button" class="px-3 py-2 rounded-md border @(FormProvider == ProviderType.GitHub ? "bg-accent-btn text-on-accent border-accent-btn" : "border-line")"
                         @onclick="() => FormProvider = ProviderType.GitHub">GitHub</button>
             </div>
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2" for="conn-name">名称</label>
-            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="conn-name" placeholder="例如：公司 Gitea / 个人 GitHub" @bind="FormName">
+            <label class="block text-sm font-medium text-ink mb-2" for="conn-name">名称</label>
+            <input type="text" class="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent-btn" id="conn-name" placeholder="例如：公司 Gitea / 个人 GitHub" @bind="FormName">
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2" for="conn-url">@(FormProvider == ProviderType.GitHub ? "API URL（默认 https://api.github.com）" : "Gitea URL")</label>
-            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="conn-url"
+            <label class="block text-sm font-medium text-ink mb-2" for="conn-url">@(FormProvider == ProviderType.GitHub ? "API URL（默认 https://api.github.com）" : "Gitea URL")</label>
+            <input type="text" class="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent-btn" id="conn-url"
                    placeholder="@(FormProvider == ProviderType.GitHub ? "https://api.github.com" : "https://gitea.example.com")" @bind="FormUrl">
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2" for="conn-token">API Token</label>
-            <input type="password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="conn-token" placeholder="输入 API Token / PAT" @bind="FormToken">
+            <label class="block text-sm font-medium text-ink mb-2" for="conn-token">API Token</label>
+            <input type="password" class="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent-btn" id="conn-token" placeholder="输入 API Token / PAT" @bind="FormToken">
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2" for="conn-username">用户名</label>
-            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="conn-username" placeholder="输入用户名" @bind="FormUsername">
+            <label class="block text-sm font-medium text-ink mb-2" for="conn-username">用户名</label>
+            <input type="text" class="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent-btn" id="conn-username" placeholder="输入用户名" @bind="FormUsername">
         </div>
         <div class="mb-4 flex items-center gap-2">
             <input type="checkbox" id="conn-enabled" @bind="FormEnabled">
-            <label for="conn-enabled" class="text-sm text-gray-800">启用</label>
+            <label for="conn-enabled" class="text-sm text-ink">启用</label>
         </div>
         <div class="flex gap-2">
-            <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="SaveConnection" disabled="@IsLoading">
+            <button class="px-4 py-2 bg-accent-btn text-on-accent rounded-md hover:bg-accent-btn-hover transition-colors" @onclick="SaveConnection" disabled="@IsLoading">
                 @(IsLoading ? "保存中..." : (EditingId > 0 ? "保存修改" : "添加连接"))
             </button>
-            <button class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50" @onclick="TestConnection" disabled="@IsLoading">测试连接</button>
+            <button class="px-4 py-2 border border-line rounded-md hover:bg-surface-2" @onclick="TestConnection" disabled="@IsLoading">测试连接</button>
             @if (EditingId > 0)
             {
-                <button class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50" @onclick="ResetForm">取消编辑</button>
+                <button class="px-4 py-2 border border-line rounded-md hover:bg-surface-2" @onclick="ResetForm">取消编辑</button>
             }
         </div>
     </Card>

@@ -1,29 +1,29 @@
 @page "/history"
 
-<h1 class="text-2xl font-semibold text-gray-800 mb-6">执行历史</h1>
+<h1 class="text-2xl font-semibold text-ink mb-6">执行历史</h1>
 
 <Card Title="最近执行记录">
     <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-800 mb-2" for="history-filter">过滤</label>
-        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="history-filter" placeholder="输入关键词搜索" @bind="filter" @bind:event="oninput">
+        <label class="block text-sm font-medium text-ink mb-2" for="history-filter">过滤</label>
+        <input type="text" class="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent-btn" id="history-filter" placeholder="输入关键词搜索" @bind="filter" @bind:event="oninput">
     </div>
-    <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="LoadHistories">刷新</button>
+    <button class="px-4 py-2 bg-accent-btn text-on-accent rounded-md hover:bg-accent-btn-hover transition-colors" @onclick="LoadHistories">刷新</button>
 </Card>
 
 <Card Title="执行记录列表">
     <div class="overflow-x-auto">
         <table class="w-full border-collapse">
             <thead>
-                <tr class="border-b border-gray-200">
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">历史记录Id</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">工作流</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">仓库</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">分支</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">状态</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">结果</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">开始时间</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">执行时间</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">操作</th>
+                <tr class="border-b border-line">
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">历史记录Id</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">工作流</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">仓库</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">分支</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">状态</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">结果</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">开始时间</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">执行时间</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">操作</th>
                 </tr>
             </thead>
             <tbody>
@@ -31,22 +31,22 @@
                 {
                     @foreach (var history in histories)
                     {
-                        <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                            <td class="px-4 py-3 text-sm text-gray-800">@history.Id</td>
-                            <td class="px-4 py-3 text-sm text-gray-800">@history.WorkflowName</td>
-                            <td class="px-4 py-3 text-sm text-gray-500">
-                                <span class="px-1.5 py-0.5 text-xs rounded-full @(history.Provider == MinGo.Gitea.Core.Models.ProviderType.GitHub ? "bg-gray-800 text-white" : "bg-green-100 text-green-800") mr-1">@(history.Provider == MinGo.Gitea.Core.Models.ProviderType.GitHub ? "GH" : "GT")</span>
+                        <tr class="border-b border-line hover:bg-surface-2 transition-colors">
+                            <td class="px-4 py-3 text-sm text-ink">@history.Id</td>
+                            <td class="px-4 py-3 text-sm text-ink">@history.WorkflowName</td>
+                            <td class="px-4 py-3 text-sm text-ink-muted">
+                                <span class="px-1.5 py-0.5 text-xs rounded-full @(history.Provider == MinGo.Gitea.Core.Models.ProviderType.GitHub ? "bg-ink text-surface" : "bg-success-soft text-success") mr-1">@(history.Provider == MinGo.Gitea.Core.Models.ProviderType.GitHub ? "GH" : "GT")</span>
                                 @history.Repo
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-500">@history.Ref</td>
+                            <td class="px-4 py-3 text-sm text-ink-muted">@history.Ref</td>
                             <td class="px-4 py-3">
                                 <StatusBadge Status="@history.Status.ToLower()" />
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-500">@(string.IsNullOrEmpty(history.Conclusion) ? "-" : history.Conclusion)</td>
-                            <td class="px-4 py-3 text-sm text-gray-500">@history.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                            <td class="px-4 py-3 text-sm text-gray-500">@GetExecutionTime(history)</td>
+                            <td class="px-4 py-3 text-sm text-ink-muted">@(string.IsNullOrEmpty(history.Conclusion) ? "-" : history.Conclusion)</td>
+                            <td class="px-4 py-3 text-sm text-ink-muted">@history.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td class="px-4 py-3 text-sm text-ink-muted">@GetExecutionTime(history)</td>
                             <td class="px-4 py-3">
-                                <NavLink class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" href="@($"/history/{history.Id}")">查看</NavLink>
+                                <NavLink class="text-xs px-2 py-1 bg-surface border border-line rounded hover:bg-surface-2 transition-colors" href="@($"/history/{history.Id}")">查看</NavLink>
                             </td>
                         </tr>
                     }
@@ -54,7 +54,7 @@
                 else
                 {
                     <tr>
-                        <td colspan="9" class="px-4 py-8 text-center text-gray-500">暂无执行记录</td>
+                        <td colspan="9" class="px-4 py-8 text-center text-ink-muted">暂无执行记录</td>
                     </tr>
                 }
             </tbody>
@@ -64,15 +64,15 @@
     @if (totalCount > 0)
     {
         <div class="mt-4 flex justify-between items-center">
-            <div class="text-sm text-gray-600">
+            <div class="text-sm text-ink-muted">
                 显示 @((page - 1) * pageSize + 1) - @Math.Min(page * pageSize, totalCount) 条，共 @totalCount 条
             </div>
             <div class="flex space-x-2">
-                <button class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50" @onclick="() => ChangePage(1)" disabled="@(page == 1)">首页</button>
-                <button class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50" @onclick="() => ChangePage(page - 1)" disabled="@(page == 1)">上一页</button>
-                <span class="px-3 py-1 border border-gray-300 rounded-md bg-gray-100">@(page)</span>
-                <button class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50" @onclick="() => ChangePage(page + 1)" disabled="@(page >= totalPages)">下一页</button>
-                <button class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50" @onclick="() => ChangePage(totalPages)" disabled="@(page >= totalPages)">末页</button>
+                <button class="px-3 py-1 border border-line rounded-md hover:bg-surface-2" @onclick="() => ChangePage(1)" disabled="@(page == 1)">首页</button>
+                <button class="px-3 py-1 border border-line rounded-md hover:bg-surface-2" @onclick="() => ChangePage(page - 1)" disabled="@(page == 1)">上一页</button>
+                <span class="px-3 py-1 border border-line rounded-md bg-surface-2">@(page)</span>
+                <button class="px-3 py-1 border border-line rounded-md hover:bg-surface-2" @onclick="() => ChangePage(page + 1)" disabled="@(page >= totalPages)">下一页</button>
+                <button class="px-3 py-1 border border-line rounded-md hover:bg-surface-2" @onclick="() => ChangePage(totalPages)" disabled="@(page >= totalPages)">末页</button>
             </div>
         </div>
     }

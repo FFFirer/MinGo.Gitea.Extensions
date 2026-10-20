@@ -11,14 +11,14 @@
             switch (Status?.ToLower())
             {
                 case "success":
-                    return "bg-green-100 text-green-700";
+                    return "bg-success-soft text-success";
                 case "running":
                 case "in_progress":
-                    return "bg-yellow-100 text-yellow-700";
+                    return "bg-warn-soft text-warn";
                 case "failed":
-                    return "bg-red-100 text-red-700";
+                    return "bg-danger-soft text-danger";
                 default:
-                    return "bg-gray-100 text-gray-700";
+                    return "bg-surface-2 text-ink";
             }
         }
     }

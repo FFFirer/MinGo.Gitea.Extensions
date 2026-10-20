@@ -1,10 +1,31 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="zh-CN">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
+    <script>
+        // Theme helpers — apply before first paint and expose toggle
+        (function () {
+            function isDark() {
+                var saved = localStorage.getItem('theme');
+                return saved ? saved === 'dark'
+                    : window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }
+            function apply(dark) {
+                document.documentElement.classList.toggle('dark', dark);
+                document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+            }
+            window.__themeDark = isDark();
+            apply(window.__themeDark);
+            window.toggleTheme = function () {
+                window.__themeDark = !window.__themeDark;
+                apply(window.__themeDark);
+                try { localStorage.setItem('theme', window.__themeDark ? 'dark' : 'light'); } catch (e) { }
+            };
+        })();
+    </script>
     <ResourcePreloader />
     <ViteLink ViteHref="index.css" />
     <link rel="stylesheet" href="@Assets["app.css"]" />

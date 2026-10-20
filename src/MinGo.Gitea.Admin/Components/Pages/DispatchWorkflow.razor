@@ -2,7 +2,7 @@
 
 @using MinGo.Gitea.Core.Models
 
-<h1 class="text-2xl font-semibold text-gray-800 mb-6">手动触发工作流执行</h1>
+<h1 class="text-2xl font-semibold text-ink mb-6">手动触发工作流执行</h1>
 
 <Steps CurrentStep="CurrentStep" />
 
@@ -11,15 +11,15 @@
 {
     <Card Title="选择仓库">
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2" for="repo-select">仓库</label>
+            <label class="block text-sm font-medium text-ink mb-2" for="repo-select">仓库</label>
             <div class="relative">
                 @if (IsLoadingRepos)
                 {
-                    <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-10">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div class="absolute inset-0 flex items-center justify-center bg-surface/80 z-10">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-btn"></div>
                     </div>
                 }
-                <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="repo-select" @bind="SelectedRepoId" @bind:after="RepoChanged">
+                <select class="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent-btn" id="repo-select" @bind="SelectedRepoId" @bind:after="RepoChanged">
                     <option value="">请选择仓库</option>
                     @foreach (var repo in Repositories)
                     {
@@ -29,7 +29,7 @@
             </div>
         </div>
         <div class="mt-4 flex">
-            <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="NextStep" disabled="@(!SelectedRepoId.HasValue || IsLoadingRepos)">
+            <button class="px-4 py-2 bg-accent-btn text-on-accent rounded-md hover:bg-accent-btn-hover transition-colors" @onclick="NextStep" disabled="@(!SelectedRepoId.HasValue || IsLoadingRepos)">
                 下一步
             </button>
         </div>
@@ -41,16 +41,16 @@
 {
     <Card Title="选择工作流">
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2">工作流</label>
+            <label class="block text-sm font-medium text-ink mb-2">工作流</label>
             @if (IsLoadingWorkflows)
             {
                 <div class="flex justify-center items-center py-8">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-btn"></div>
                 </div>
             }
             else if (Workflows.Count == 0)
             {
-                <div class="text-center py-8 text-gray-500">
+                <div class="text-center py-8 text-ink-muted">
                     该仓库没有可用的工作流
                 </div>
             }
@@ -71,10 +71,10 @@
             }
         </div>
         <div class="mt-4 flex justify-start gap-2">
-            <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep">
+            <button class="px-4 py-2 bg-surface border border-line rounded-md hover:bg-surface-2 transition-colors" @onclick="PrevStep">
                 上一步
             </button>
-            <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="NextStep" disabled="@(string.IsNullOrEmpty(SelectedWorkflowId) || IsLoadingWorkflows)">
+            <button class="px-4 py-2 bg-accent-btn text-on-accent rounded-md hover:bg-accent-btn-hover transition-colors" @onclick="NextStep" disabled="@(string.IsNullOrEmpty(SelectedWorkflowId) || IsLoadingWorkflows)">
                 下一步
             </button>
         </div>
@@ -86,20 +86,20 @@
 {
     <Card Title="选择引用">
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2" for="ref-select">引用（分支或标签）</label>
+            <label class="block text-sm font-medium text-ink mb-2" for="ref-select">引用（分支或标签）</label>
             <div class="relative">
                 @if (IsLoadingRefs)
                 {
-                    <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-10">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div class="absolute inset-0 flex items-center justify-center bg-surface/80 z-10">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-btn"></div>
                     </div>
-                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
+                    <select class="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent-btn" disabled>
                         <option value="">加载中...</option>
                     </select>
                 }
                 else
                 {
-                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="ref-select" @bind="SelectedRef">
+                    <select class="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent-btn" id="ref-select" @bind="SelectedRef">
                         <option value="">请选择引用</option>
                         @foreach (var @ref in Refs)
                         {
@@ -110,10 +110,10 @@
             </div>
         </div>
         <div class="mt-4 flex justify-start gap-2">
-            <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep">
+            <button class="px-4 py-2 bg-surface border border-line rounded-md hover:bg-surface-2 transition-colors" @onclick="PrevStep">
                 上一步
             </button>
-            <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="NextStep" disabled="@(string.IsNullOrEmpty(SelectedRef) || IsLoadingRefs)">
+            <button class="px-4 py-2 bg-accent-btn text-on-accent rounded-md hover:bg-accent-btn-hover transition-colors" @onclick="NextStep" disabled="@(string.IsNullOrEmpty(SelectedRef) || IsLoadingRefs)">
                 下一步
             </button>
         </div>
@@ -125,25 +125,25 @@
 {
     <Card Title="执行信息">
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2">仓库</label>
-            <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedRepoName</div>
+            <label class="block text-sm font-medium text-ink mb-2">仓库</label>
+            <div class="w-full px-3 py-2 border border-line rounded-md bg-surface-2 cursor-default">@SelectedRepoName</div>
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2">工作流</label>
-            <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedWorkflowName</div>
+            <label class="block text-sm font-medium text-ink mb-2">工作流</label>
+            <div class="w-full px-3 py-2 border border-line rounded-md bg-surface-2 cursor-default">@SelectedWorkflowName</div>
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-800 mb-2">引用</label>
-            <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-default">@SelectedRef</div>
+            <label class="block text-sm font-medium text-ink mb-2">引用</label>
+            <div class="w-full px-3 py-2 border border-line rounded-md bg-surface-2 cursor-default">@SelectedRef</div>
         </div>
         @if (WorkflowInputs.Count > 0)
         {
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-800 mb-2">输入参数</label>
+                <label class="block text-sm font-medium text-ink mb-2">输入参数</label>
                 @if (IsLoadingInputs)
                 {
                     <div class="flex justify-center items-center py-4">
-                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-accent-btn"></div>
                     </div>
                 }
                 else
@@ -152,15 +152,15 @@
                         @foreach (var input in WorkflowInputs)
                         {
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <label class="block text-sm font-medium text-ink mb-1">
                                     @input.Name
                                     @if (input.Required)
                                     {
-                                        <span class="text-red-500">*</span>
+                                        <span class="text-danger">*</span>
                                     }
                                     @if (!string.IsNullOrEmpty(input.Description))
                                     {
-                                        <span class="text-gray-500 text-xs ml-1">- @input.Description</span>
+                                        <span class="text-ink-muted text-xs ml-1">- @input.Description</span>
                                     }
                                 </label>
                                 @switch (input.Type)
@@ -168,14 +168,14 @@
                                     case "boolean":
                                         <div class="flex items-center">
                                             <input type="checkbox" 
-                                                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                   class="h-4 w-4 text-accent border-line rounded focus:ring-accent-btn"
                                                    checked="@GetBoolValue(input.Name)"
                                                    @onchange="@(e => OnBoolInputChanged(input.Name, e.Value?.ToString() ?? "false"))">
-                                            <span class="ml-2 text-sm text-gray-600">@GetBoolDisplay(input.Name)</span>
+                                            <span class="ml-2 text-sm text-ink-muted">@GetBoolDisplay(input.Name)</span>
                                         </div>
                                         break;
                                     case "choice":
-                                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        <select class="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent-btn"
                                                 @bind="InputValues[input.Name]">
                                             @if (!string.IsNullOrEmpty(input.DefaultValue))
                                             {
@@ -192,7 +192,7 @@
                                         break;
                                     default:
                                         <input type="text" 
-                                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                               class="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent-btn"
                                                placeholder="@(input.DefaultValue ?? "")"
                                                @oninput="@(e => OnInputChanged(input.Name, e.Value?.ToString() ?? ""))">
                                         break;
@@ -204,10 +204,10 @@
             </div>
         }
         <div class="mt-4 flex justify-start gap-2">
-            <button class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @onclick="PrevStep">
+            <button class="px-4 py-2 bg-surface border border-line rounded-md hover:bg-surface-2 transition-colors" @onclick="PrevStep">
                 上一步
             </button>
-            <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" @onclick="Start" disabled="@IsTriggering">
+            <button class="px-4 py-2 bg-accent-btn text-on-accent rounded-md hover:bg-accent-btn-hover transition-colors" @onclick="Start" disabled="@IsTriggering">
                 @(IsTriggering ? "触发中..." : "确认触发")
             </button>
         </div>

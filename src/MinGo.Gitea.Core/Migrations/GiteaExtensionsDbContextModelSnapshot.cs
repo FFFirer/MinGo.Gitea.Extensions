@@ -17,10 +17,20 @@ namespace MinGo.Gitea.Core.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
 
-            modelBuilder.Entity("MinGo.Gitea.Core.Models.GiteaConfig", b =>
+            modelBuilder.Entity("MinGo.Gitea.Core.Models.ProviderConnection", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProviderType")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ServerUrl")
@@ -37,7 +47,7 @@ namespace MinGo.Gitea.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("GiteaConfigs");
+                    b.ToTable("ProviderConnections", (string)null);
                 });
 
             modelBuilder.Entity("MinGo.Gitea.Core.Models.ScheduledTrigger", b =>
@@ -102,6 +112,9 @@ namespace MinGo.Gitea.Core.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("ConnectionId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -114,6 +127,9 @@ namespace MinGo.Gitea.Core.Migrations
                     b.Property<string>("Owner")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("Provider")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Ref")
                         .IsRequired()
@@ -159,6 +175,9 @@ namespace MinGo.Gitea.Core.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ConnectionId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -172,6 +191,9 @@ namespace MinGo.Gitea.Core.Migrations
                     b.Property<string>("Owner")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("Provider")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Ref")
                         .IsRequired()

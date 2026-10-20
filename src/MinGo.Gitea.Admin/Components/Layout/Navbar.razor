@@ -1,38 +1,49 @@
-<nav class="bg-white shadow-sm py-4 px-6 flex justify-between items-center">
-    <div class="text-xl font-semibold text-blue-600">Workflows</div>
-    <ul class="flex gap-5">
-        <li>
-            <NavLink href="/" class="nav-link">
-                首页
-            </NavLink>
-        </li>
-        <li>
-            <NavLink href="/templates" class="nav-link">
-                触发模板
-            </NavLink>
-        </li>
-        <li>
-            <NavLink href="/dispatch-workflow" class="nav-link">
-                触发工作流
-            </NavLink>
-        </li>
-        <li>
-            <NavLink href="/history" class="nav-link">
-                执行历史
-            </NavLink>
-        </li>
-        <li>
-            <NavLink href="/settings" class="nav-link">
-                设置
-            </NavLink>
-        </li>
-    </ul>
+<nav class="bg-surface border-b border-line py-4 px-6 flex justify-between items-center">
+    <div class="text-xl font-semibold text-accent">Workflows</div>
+    <div class="flex items-center gap-4">
+        <ul class="flex gap-1">
+            <li>
+                <NavLink href="/" class="nav-link">
+                    首页
+                </NavLink>
+            </li>
+            <li>
+                <NavLink href="/templates" class="nav-link">
+                    触发模板
+                </NavLink>
+            </li>
+            <li>
+                <NavLink href="/dispatch-workflow" class="nav-link">
+                    触发工作流
+                </NavLink>
+            </li>
+            <li>
+                <NavLink href="/history" class="nav-link">
+                    执行历史
+                </NavLink>
+            </li>
+            <li>
+                <NavLink href="/settings" class="nav-link">
+                    设置
+                </NavLink>
+            </li>
+        </ul>
+        <button type="button" class="theme-toggle" onclick="toggleTheme()" title="切换明暗主题" aria-label="切换明暗主题">
+            <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+            </svg>
+            <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+        </button>
+    </div>
 </nav>
 
 <style>
     .nav-link {
         text-decoration: none;
-        color: #5E6C84;
+        color: var(--c-ink-muted);
         font-size: 14px;
         font-weight: 400;
         padding: 8px 12px;
@@ -41,13 +52,46 @@
     }
 
     .nav-link:hover {
-        background-color: #F5F7FA;
-        color: #172B4D;
+        background-color: var(--c-surface-2);
+        color: var(--c-ink);
     }
 
     .nav-link.active {
-        color: #0052CC;
+        color: var(--c-accent);
+        background-color: var(--c-accent-soft);
         font-weight: 500;
+    }
+
+    .theme-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: 1px solid var(--c-line);
+        border-radius: 8px;
+        background: var(--c-surface);
+        color: var(--c-ink-muted);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .theme-toggle:hover {
+        background: var(--c-surface-2);
+        color: var(--c-ink);
+        border-color: var(--c-line-strong);
+    }
+
+    .theme-toggle .icon-moon {
+        display: none;
+    }
+
+    html.dark .theme-toggle .icon-sun {
+        display: none;
+    }
+
+    html.dark .theme-toggle .icon-moon {
+        display: block;
     }
 
     @@media (max-width: 768px) {

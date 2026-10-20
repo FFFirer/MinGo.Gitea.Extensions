@@ -1,18 +1,18 @@
 @page "/templates"
 
-<h1 class="text-2xl font-semibold text-gray-800 mb-6">触发模板</h1>
+<h1 class="text-2xl font-semibold text-ink mb-6">触发模板</h1>
 
 <Card Title="模板列表">
     <div class="overflow-x-auto">
         <table class="w-full border-collapse">
             <thead>
-                <tr class="border-b border-gray-200">
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">模板名称</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">仓库</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">工作流</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">分支</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">创建时间</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800">操作</th>
+                <tr class="border-b border-line">
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">模板名称</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">仓库</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">工作流</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">分支</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">创建时间</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-ink">操作</th>
                 </tr>
             </thead>
             <tbody>
@@ -20,20 +20,20 @@
                 {
                     @foreach (var template in templates)
                     {
-                        <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                            <td class="px-4 py-3 text-sm text-gray-800">@template.Name</td>
-                            <td class="px-4 py-3 text-sm text-gray-500">@template.Owner/@template.Repo</td>
-                            <td class="px-4 py-3 text-sm text-gray-800">@template.WorkflowName</td>
-                            <td class="px-4 py-3 text-sm text-gray-500">@template.Ref</td>
-                            <td class="px-4 py-3 text-sm text-gray-500">@template.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        <tr class="border-b border-line hover:bg-surface-2 transition-colors">
+                            <td class="px-4 py-3 text-sm text-ink">@template.Name</td>
+                            <td class="px-4 py-3 text-sm text-ink-muted">@template.Owner/@template.Repo</td>
+                            <td class="px-4 py-3 text-sm text-ink">@template.WorkflowName</td>
+                            <td class="px-4 py-3 text-sm text-ink-muted">@template.Ref</td>
+                            <td class="px-4 py-3 text-sm text-ink-muted">@template.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
                             <td class="px-4 py-3">
                                 <div class="flex space-x-2">
-                                    <button class="text-xs px-2 py-1 bg-blue-50 border border-blue-200 text-blue-600 rounded hover:bg-blue-100 transition-colors" 
+                                    <button class="text-xs px-2 py-1 bg-info-soft border border-info text-accent rounded hover:bg-info-soft transition-colors" 
                                             @onclick="() => ExecuteTemplate(template)" disabled="@isLoading">
                                         @if (isLoading && loadingTemplateId == template.Id)
                                         {
                                             <div class="flex items-center">
-                                                <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1"></div>
+                                                <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-accent-btn mr-1"></div>
                                                 执行中
                                             </div>
                                         }
@@ -42,7 +42,7 @@
                                             @("执行")
                                         }
                                     </button>
-                                    <button class="text-xs px-2 py-1 bg-red-50 border border-red-200 text-red-600 rounded hover:bg-red-100 transition-colors" 
+                                    <button class="text-xs px-2 py-1 bg-danger-soft border border-danger text-danger rounded hover:bg-danger-soft transition-colors" 
                                             @onclick="() => DeleteTemplate(template.Id)" disabled="@isLoading">
                                         删除
                                     </button>
@@ -54,7 +54,7 @@
                 else
                 {
                     <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">暂无模板</td>
+                        <td colspan="6" class="px-4 py-8 text-center text-ink-muted">暂无模板</td>
                     </tr>
                 }
             </tbody>

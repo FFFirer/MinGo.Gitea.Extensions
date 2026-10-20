@@ -35,7 +35,7 @@ public class WorkflowStatusUpdaterServiceTests
             .Options;
 
         _dbContext = new GiteaExtensionsDbContext(options);
-        _mockWorkflowService = new Mock<WorkflowService>([default!, _dbContext]);
+        _mockWorkflowService = new Mock<WorkflowService>();
         _service = new WorkflowStatusUpdaterService(_mockWorkflowService.Object, _dbContext, _mockLogger.Object);
     }
 
@@ -136,7 +136,7 @@ public class WorkflowStatusUpdaterServiceTests
     {
         // 创建服务时不提供数据库上下文
         var mockApiClient = new Mock<MinGo.Gitea.Core.Interfaces.IGiteaApiClient>();
-        var workflowService = new WorkflowService(mockApiClient.Object, null);
+        var workflowService = new WorkflowService(apiClient: mockApiClient.Object, dbContext: null);
         var service = new WorkflowStatusUpdaterService(workflowService, null, _mockLogger.Object);
 
         // 执行测试 - 应该不会抛出异常
