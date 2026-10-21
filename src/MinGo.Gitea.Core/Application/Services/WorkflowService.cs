@@ -314,6 +314,7 @@ public class WorkflowService
                 Inputs = inputsJson,
                 ConnectionId = workflow.ConnectionId,
                 Provider = workflow.Provider,
+                HtmlUrl = run.HtmlUrl,
             };
 
             _dbContext.WorkflowRunHistories.Add(history);
@@ -374,6 +375,33 @@ public class WorkflowService
         }
 
         return await _dbContext.WorkflowRunHistories.FirstOrDefaultAsync(h => h.Id == id);
+    }
+
+    /// <summary>
+    /// 解析平台侧执行详情页 URL：优先 history.HtmlUrl，否则按连接 ServerUrl 兜底拼接。
+    /// </summary>
+    public async Task<string?> GetPlatformRunUrlAsync(WorkflowRunHistory history)
+    {
+        ArgumentNullException.ThrowIfNull(history);
+
+        if (!string.IsNullOrWhiteSpace(history.HtmlUrl))
+        {
+            return history.HtmlUrl;
+        }
+
+        string? serverUrl = null;
+        if (_connectionService != null && history.ConnectionId > 0)
+        {
+            var conn = await _connectionService.GetByIdAsync(history.ConnectionId);
+            serverUrl = conn?.ServerUrl;
+        }
+
+        return PlatformUrlBuilder.BuildWorkflowRunUrl(
+            history.Provider,
+            serverUrl,
+            history.Owner,
+            history.Repo,
+            history.RunId);
     }
 
     public async Task<int> GetTotalRunCountAsync()

@@ -22,4 +22,6 @@ public class WorkflowRunHistory
     public DateTime? EndedAt { get; set; } // 工作流结束执行时间
     public required string TriggerType { get; set; } // 手动触发或定时触发
     public string? Inputs { get; set; }
+    /// <summary>平台侧执行详情页 URL（历史数据可能为空，由 ServerUrl 兜底拼接）</summary>
+    public string? HtmlUrl { get; set; }
 }

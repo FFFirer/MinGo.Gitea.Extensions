@@ -68,7 +68,14 @@ else
                 </div>
             </div>
         }
-        <div class="flex space-x-4">
+        <div class="flex space-x-4 items-center flex-wrap">
+            @if (!string.IsNullOrEmpty(platformRunUrl))
+            {
+                <a class="px-4 py-2 bg-surface border border-line rounded-md hover:bg-surface-2 transition-colors inline-flex items-center"
+                   href="@platformRunUrl" target="_blank" rel="noopener noreferrer">
+                    @(history.Provider == Core.Models.ProviderType.GitHub ? "在 GitHub 中打开" : "在 Gitea 中打开")
+                </a>
+            }
             <button class="px-4 py-2 bg-success-btn text-on-accent rounded-md hover:bg-success-btn-hover transition-colors" @onclick="ShowSaveTemplateDialog" disabled="@isLoading">
                 @if (isSavingTemplate)
                 {
@@ -128,6 +135,7 @@ else
     private bool showSaveTemplateDialog = false;
     private string templateName = string.Empty;
     private bool isSavingTemplate = false;
+    private string? platformRunUrl;
 
     [Inject]
     private WorkflowService WorkflowService { get; set; } = default!;
@@ -148,6 +156,9 @@ else
     private async Task LoadWorkflowHistory()
     {
         history = await WorkflowService.GetWorkflowRunHistoryByIdAsync(Id);
+        platformRunUrl = history == null
+            ? null
+            : await WorkflowService.GetPlatformRunUrlAsync(history);
     }
 
     private string GetStatusClass(string status)

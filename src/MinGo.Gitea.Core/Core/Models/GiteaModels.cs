@@ -46,5 +46,7 @@ public class WorkflowRun
     public required string CommitSha { get; set; }
     public int ConnectionId { get; set; }
     public ProviderType Provider { get; set; } = ProviderType.Gitea;
+    /// <summary>平台侧执行详情页 URL（API html_url）</summary>
+    public string? HtmlUrl { get; set; }
 }
 

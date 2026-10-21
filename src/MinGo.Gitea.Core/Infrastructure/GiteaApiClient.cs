@@ -242,6 +242,7 @@ public class GiteaApiClient : IGiteaApiClient
         Ref = r.head_branch ?? string.Empty,
         CommitSha = r.head_sha ?? string.Empty,
         ConnectionId = _config.Id,
-        Provider = ProviderType.Gitea
+        Provider = ProviderType.Gitea,
+        HtmlUrl = r.html_url
     };
 }

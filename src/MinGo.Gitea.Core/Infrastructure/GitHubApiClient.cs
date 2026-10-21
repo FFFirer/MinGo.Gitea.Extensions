@@ -251,7 +251,8 @@ public class GitHubApiClient : IActionsApiClient
             Ref = r.HeadBranch ?? string.Empty,
             CommitSha = r.HeadSha ?? string.Empty,
             ConnectionId = _config.Id,
-            Provider = ProviderType.GitHub
+            Provider = ProviderType.GitHub,
+            HtmlUrl = r.HtmlUrl
         };
     }
 }
