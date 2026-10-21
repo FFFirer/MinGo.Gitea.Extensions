@@ -4,6 +4,7 @@ using MinGo.Gitea.Infrastructure;
 using MinGo.Gitea.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -137,82 +138,118 @@ public class WorkflowService
             if (client == null) return new List<WorkflowInput>();
 
             var yamlContent = await client.GetWorkflowFileContentAsync(owner, repo, workflowPath);
-            if (string.IsNullOrEmpty(yamlContent))
-            {
-                return new List<WorkflowInput>();
-            }
-
-            var deserializer = new DeserializerBuilder()
-                .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .Build();
-
-            var workflow = deserializer.Deserialize<Dictionary<string, object>>(yamlContent);
-            if (workflow == null)
-            {
-                return new List<WorkflowInput>();
-            }
-
-            if (!workflow.TryGetValue("on", out var onValue))
-            {
-                return new List<WorkflowInput>();
-            }
-
-            Dictionary<string, object>? workflowDispatch = null;
-
-            if (onValue is Dictionary<string, object> onDict)
-            {
-                // YAML 键原样是 workflow_dispatch；兼容 camelCase 反序列化结果
-                if (onDict.TryGetValue("workflow_dispatch", out var wd1))
-                {
-                    workflowDispatch = wd1 as Dictionary<string, object>;
-                }
-                else if (onDict.TryGetValue("workflowDispatch", out var wd2))
-                {
-                    workflowDispatch = wd2 as Dictionary<string, object>;
-                }
-            }
-            else if (onValue is string onStr && onStr == "workflow_dispatch")
-            {
-                return new List<WorkflowInput>();
-            }
-
-            if (workflowDispatch == null || !workflowDispatch.TryGetValue("inputs", out var inputsObj) || inputsObj is not Dictionary<object, object> inputs)
-            {
-                return new List<WorkflowInput>();
-            }
-
-            var result = new List<WorkflowInput>();
-            foreach (var (key, value) in inputs)
-            {
-                var inputName = key?.ToString() ?? "";
-                var inputDict = value as Dictionary<object, object>;
-
-                var input = new WorkflowInput
-                {
-                    Name = inputName,
-                    Type = inputDict?.TryGetValue("type", out var type) == true ? type?.ToString() ?? "string" : "string",
-                    Description = inputDict?.TryGetValue("description", out var desc) == true ? desc?.ToString() : null,
-                    Required = inputDict?.TryGetValue("required", out var req) == true && bool.TryParse(req?.ToString(), out var reqVal) && reqVal,
-                    DefaultValue = inputDict?.TryGetValue("default", out var def) == true ? def?.ToString() : null
-                };
-
-                if (input.Type == "choice" && inputDict?.TryGetValue("options", out var opts) == true)
-                {
-                    input.Options = (opts as List<object>)?.Select(o => o?.ToString() ?? "").ToList();
-                }
-
-                result.Add(input);
-            }
-
-            return result
-                .OrderByDescending(i => i.Required)
-                .ThenBy(i => i.Name)
-                .ToList();
+            return ParseWorkflowDispatchInputs(yamlContent);
         }
         catch
         {
             return new List<WorkflowInput>();
         }
+    }
+
+    /// <summary>
+    /// 从 workflow YAML 原文解析 on.workflow_dispatch.inputs。
+    /// YamlDotNet 对 object 值的嵌套节点建为 Dictionary&lt;object, object&gt;，键比较须走 ToString()。
+    /// </summary>
+    public static List<WorkflowInput> ParseWorkflowDispatchInputs(string? yamlContent)
+    {
+        var result = new List<WorkflowInput>();
+        if (string.IsNullOrWhiteSpace(yamlContent)) return result;
+
+        var deserializer = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .Build();
+
+        object? root;
+        try
+        {
+            root = deserializer.Deserialize<object?>(yamlContent);
+        }
+        catch (YamlException)
+        {
+            return result;
+        }
+
+        var workflow = ToYamlMapping(root);
+        // 键 "on" 在 YAML 1.1 里会被解析成布尔 true，两种键名都要认
+        if (!TryGetYamlValue(workflow, "on", out var onValue)) return result;
+
+        // on: 可以是标量、映射，或 "- workflow_dispatch" 这样的列表
+        var onMappings = new List<Dictionary<object, object>?>
+        {
+            ToYamlMapping(onValue)
+        };
+        if (onValue is List<object> onList)
+            onMappings.AddRange(onList.Select(ToYamlMapping));
+
+        Dictionary<object, object>? dispatch = null;
+        foreach (var on in onMappings)
+        {
+            if (on == null) continue;
+            if (TryGetYamlValue(on, "workflow_dispatch", out var wd)
+                || TryGetYamlValue(on, "workflowDispatch", out wd))
+            {
+                dispatch = ToYamlMapping(wd);
+                break;
+            }
+        }
+
+        if (dispatch == null || !TryGetYamlValue(dispatch, "inputs", out var inputsObj)) return result;
+        var inputs = ToYamlMapping(inputsObj);
+        if (inputs == null) return result;
+
+        foreach (var (key, value) in inputs)
+        {
+            var inputName = key?.ToString() ?? "";
+            if (string.IsNullOrEmpty(inputName)) continue;
+
+            var definition = ToYamlMapping(value);
+            var input = new WorkflowInput
+            {
+                Name = inputName,
+                Type = GetString(definition, "type") ?? "string",
+                Description = GetString(definition, "description"),
+                Required = bool.TryParse(GetString(definition, "required"), out var required) && required,
+                DefaultValue = GetString(definition, "default")
+            };
+
+            if (input.Type == "choice" && definition != null
+                && TryGetYamlValue(definition, "options", out var opts)
+                && opts is List<object> options)
+            {
+                input.Options = options.Select(o => o?.ToString() ?? "").ToList();
+            }
+
+            result.Add(input);
+        }
+
+        return result
+            .OrderByDescending(i => i.Required)
+            .ThenBy(i => i.Name)
+            .ToList();
+
+        static string? GetString(Dictionary<object, object>? mapping, string key)
+            => mapping != null && TryGetYamlValue(mapping, key, out var value) ? value?.ToString() : null;
+    }
+
+    static Dictionary<object, object>? ToYamlMapping(object? value) => value switch
+    {
+        Dictionary<object, object> objectKeyed => objectKeyed,
+        Dictionary<string, object> stringKeyed => stringKeyed.ToDictionary(kv => (object)kv.Key, kv => kv.Value),
+        _ => null
+    };
+
+    static bool TryGetYamlValue(Dictionary<object, object>? mapping, string key, out object? value)
+    {
+        foreach (var kv in mapping ?? [])
+        {
+            if (string.Equals(kv.Key?.ToString(), key, StringComparison.OrdinalIgnoreCase))
+            {
+                value = kv.Value;
+                return true;
+            }
+        }
+        value = null;
+        return false;
     }
 
     public async Task<Repository?> GetRepositoryByNameAsync(string fullName)
