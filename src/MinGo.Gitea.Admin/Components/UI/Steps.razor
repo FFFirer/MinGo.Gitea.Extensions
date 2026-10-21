@@ -6,14 +6,14 @@
         var isCompleted = stepIndex < CurrentStep;
         
         <div class="flex-1 text-center relative">
-            <div class="step-number w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium relative z-10 @(isActive ? "bg-accent-btn text-on-accent" : isCompleted ? "bg-success-btn text-on-accent" : "bg-surface-2 text-ink-muted")">
+            <div class="step-number w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium relative z-10 @(isActive ? "bg-accent-btn text-on-accent" : isCompleted ? "bg-success-btn text-on-accent" : "bg-surface-3 text-ink-muted")">
                 @stepIndex
             </div>
             <div class="step-label text-xs mt-2 @(isActive ? "text-ink font-medium" : "text-ink-muted")">@step</div>
             
             @if (stepIndex < StepItems.Count)
             {
-                <div class="absolute top-4 left-1/2 -right-1/2 h-0.5 bg-surface-2 -z-10">
+                <div class="absolute top-4 left-1/2 -right-1/2 h-0.5 bg-line -z-10">
                     <div class="h-full bg-accent-btn transition-all duration-300" style="width: @(isCompleted ? "100%" : isActive ? "0%" : "0%")"></div>
                 </div>
             }

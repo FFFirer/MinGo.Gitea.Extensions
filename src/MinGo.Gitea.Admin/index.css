@@ -136,6 +136,49 @@ body {
   color: var(--c-ink);
 }
 
+/* Native form controls — keep dropdown popups readable in dark mode */
+select,
+textarea,
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']) {
+  background-color: var(--c-surface);
+  color: var(--c-ink);
+}
+
+select option {
+  background-color: var(--c-surface);
+  color: var(--c-ink);
+}
+
+select option:checked,
+select option:hover {
+  background-color: var(--c-accent-soft);
+  color: var(--c-ink);
+}
+
+html.dark select,
+html.dark textarea {
+  color-scheme: dark;
+  background-color: var(--c-surface-2);
+  color: var(--c-ink);
+}
+
+html.dark select option {
+  background-color: var(--c-surface-2);
+  color: var(--c-ink);
+}
+
+html.dark select option:checked,
+html.dark select option:hover {
+  background-color: var(--c-surface-3);
+  color: var(--c-ink);
+}
+
+html.dark select:disabled,
+html.dark option:disabled {
+  color: var(--c-ink-faint);
+  opacity: 1;
+}
+
 /* Design tokens kept for existing custom CSS */
 :root {
   --bg-light: var(--c-app);
@@ -155,16 +198,9 @@ body {
 }
 
 .step-number {
-  @apply w-8 h-8 flex items-center justify-center rounded-full text-on-accent font-bold;
   margin: 0 auto 8px;
 }
 
 .step-label {
   font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.step.active .step-label {
-  color: var(--text-primary);
-  font-weight: 500;
 }
