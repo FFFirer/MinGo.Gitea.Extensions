@@ -12,7 +12,8 @@ public class WorkflowRunHistory
     public required string WorkflowName { get; set; }
     public required string Ref { get; set; }
     public required string CommitSha { get; set; }
-    public int RunId { get; set; }
+    // GitHub run id 可能超过 int.MaxValue
+    public long RunId { get; set; }
     public required string Status { get; set; }
     public required string Conclusion { get; set; }
     public DateTime CreatedAt { get; set; }

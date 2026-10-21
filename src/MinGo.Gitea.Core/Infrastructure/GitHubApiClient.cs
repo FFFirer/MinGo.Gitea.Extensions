@@ -164,10 +164,14 @@ public class GitHubApiClient : IActionsApiClient
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId)
+    public async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, long runId)
     {
         var request = CreateRequest(HttpMethod.Get, $"/repos/{owner}/{repo}/actions/runs/{runId}");
         var response = await _httpClient.SendAsync(request);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var run = JsonConvert.DeserializeObject<GitHubWorkflowRun>(content);
@@ -189,7 +193,16 @@ public class GitHubApiClient : IActionsApiClient
         if (!string.IsNullOrEmpty(created)) queryParams.Add($"created={Uri.EscapeDataString(created)}");
         if (!string.IsNullOrEmpty(headSha)) queryParams.Add($"head_sha={Uri.EscapeDataString(headSha)}");
 
-        var endpoint = $"/repos/{owner}/{repo}/actions/runs?{string.Join("&", queryParams)}";
+        // 优先走 workflow 专属 runs 接口，避免混入其它 workflow 的 run
+        string endpoint;
+        if (workflowId.HasValue)
+        {
+            endpoint = $"/repos/{owner}/{repo}/actions/workflows/{workflowId}/runs?{string.Join("&", queryParams)}";
+        }
+        else
+        {
+            endpoint = $"/repos/{owner}/{repo}/actions/runs?{string.Join("&", queryParams)}";
+        }
         var request = CreateRequest(HttpMethod.Get, endpoint);
         var response = await _httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
@@ -197,10 +210,6 @@ public class GitHubApiClient : IActionsApiClient
         var result = JsonConvert.DeserializeObject<GitHubWorkflowRunListResponse>(content);
 
         IEnumerable<WorkflowRun> runs = result?.WorkflowRuns?.Select(MapRun) ?? [];
-        if (workflowId.HasValue)
-        {
-            // GitHub 列表接口无 workflow_id 过滤，按文件名/名称近似过滤留给上层
-        }
         return runs;
     }
 
@@ -233,7 +242,7 @@ public class GitHubApiClient : IActionsApiClient
 
         return new WorkflowRun
         {
-            Id = (int)r.Id,
+            Id = r.Id,
             Name = r.DisplayTitle ?? r.Name ?? string.Empty,
             Status = r.Status ?? string.Empty,
             Conclusion = r.Conclusion ?? string.Empty,

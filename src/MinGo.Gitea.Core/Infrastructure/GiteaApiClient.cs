@@ -156,10 +156,14 @@ public class GiteaApiClient : IGiteaApiClient
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId)
+    public async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, long runId)
     {
         var request = CreateRequest(HttpMethod.Get, $"/api/v1/repos/{owner}/{repo}/actions/runs/{runId}");
         var response = await _httpClient.SendAsync(request);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var run = JsonConvert.DeserializeObject<GiteaWorkflowRun>(content);
@@ -229,7 +233,7 @@ public class GiteaApiClient : IGiteaApiClient
 
     private WorkflowRun MapRun(GiteaWorkflowRun r) => new()
     {
-        Id = (int)r.id,
+        Id = r.id,
         Name = r.display_title ?? string.Empty,
         Status = r.status ?? string.Empty,
         Conclusion = r.conclusion ?? string.Empty,

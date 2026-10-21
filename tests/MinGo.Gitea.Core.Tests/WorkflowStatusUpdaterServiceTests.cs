@@ -79,7 +79,7 @@ public class WorkflowStatusUpdaterServiceTests
             CommitSha = "test-sha"
         };
 
-        _mockWorkflowService.Setup(s => s.GetWorkflowRunAsync("test-owner", "test-repo", 123))
+        _mockWorkflowService.Setup(s => s.GetWorkflowRunAsync("test-owner", "test-repo", 123, It.IsAny<int>()))
             .ReturnsAsync(mockRun);
 
         // 执行测试
@@ -89,6 +89,107 @@ public class WorkflowStatusUpdaterServiceTests
         var updatedHistory = await _dbContext.WorkflowRunHistories.FirstAsync(h => h.Id == 1, TestContext.Current.CancellationToken);
         Assert.Equal("completed", updatedHistory.Status);
         Assert.Equal("success", updatedHistory.Conclusion);
+        Assert.NotNull(updatedHistory.EndedAt);
+    }
+
+    [Fact]
+    public async Task UpdateWorkflowStatusesAsync_ShouldUpdateLargeGitHubRunId()
+    {
+        SetupTestContext();
+        // GitHub run id 可能超过 int.MaxValue
+        const long largeRunId = 12_345_678_901L;
+        var history = new WorkflowRunHistory
+        {
+            Id = 1,
+            Owner = "test-owner",
+            Repo = "test-repo",
+            WorkflowId = "1",
+            WorkflowName = "Test Workflow",
+            Ref = "main",
+            CommitSha = "test-sha",
+            RunId = largeRunId,
+            Status = "in_progress",
+            Conclusion = "",
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now,
+            StartedAt = DateTime.Now,
+            EndedAt = null,
+            TriggerType = "manual",
+            ConnectionId = 7
+        };
+
+        _dbContext.WorkflowRunHistories.Add(history);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var mockRun = new WorkflowRun
+        {
+            Id = largeRunId,
+            Name = "Test Workflow",
+            Status = "completed",
+            Conclusion = "success",
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now,
+            Ref = "main",
+            CommitSha = "test-sha"
+        };
+
+        _mockWorkflowService.Setup(s => s.GetWorkflowRunAsync("test-owner", "test-repo", largeRunId, 7))
+            .ReturnsAsync(mockRun);
+
+        await _service.UpdateWorkflowStatusesAsync();
+
+        var updatedHistory = await _dbContext.WorkflowRunHistories.FirstAsync(h => h.Id == 1, TestContext.Current.CancellationToken);
+        Assert.Equal(largeRunId, updatedHistory.RunId);
+        Assert.Equal("completed", updatedHistory.Status);
+        Assert.Equal("success", updatedHistory.Conclusion);
+        Assert.NotNull(updatedHistory.EndedAt);
+    }
+
+    [Fact]
+    public async Task UpdateWorkflowStatusesAsync_ShouldTreatGiteaSuccessAsTerminal()
+    {
+        SetupTestContext();
+        var history = new WorkflowRunHistory
+        {
+            Id = 1,
+            Owner = "test-owner",
+            Repo = "test-repo",
+            WorkflowId = "1",
+            WorkflowName = "Test Workflow",
+            Ref = "main",
+            CommitSha = "test-sha",
+            RunId = 123,
+            Status = "running",
+            Conclusion = "",
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now,
+            StartedAt = DateTime.Now,
+            EndedAt = null,
+            TriggerType = "manual"
+        };
+
+        _dbContext.WorkflowRunHistories.Add(history);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var mockRun = new WorkflowRun
+        {
+            Id = 123,
+            Name = "Test Workflow",
+            Status = "success",
+            Conclusion = "",
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now,
+            Ref = "main",
+            CommitSha = "test-sha"
+        };
+
+        _mockWorkflowService.Setup(s => s.GetWorkflowRunAsync("test-owner", "test-repo", 123, It.IsAny<int>()))
+            .ReturnsAsync(mockRun);
+
+        await _service.UpdateWorkflowStatusesAsync();
+
+        var updatedHistory = await _dbContext.WorkflowRunHistories.FirstAsync(h => h.Id == 1, TestContext.Current.CancellationToken);
+        Assert.Equal("success", updatedHistory.Status);
         Assert.NotNull(updatedHistory.EndedAt);
     }
 
@@ -120,7 +221,7 @@ public class WorkflowStatusUpdaterServiceTests
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // 模拟 API 错误
-        _mockWorkflowService.Setup(s => s.GetWorkflowRunAsync("test-owner", "test-repo", 123))
+        _mockWorkflowService.Setup(s => s.GetWorkflowRunAsync("test-owner", "test-repo", 123, It.IsAny<int>()))
             .ThrowsAsync(new Exception("API Error"));
 
         // 执行测试
@@ -211,7 +312,7 @@ public class WorkflowStatusUpdaterServiceTests
             CommitSha = "test-sha"
         };
 
-        _mockWorkflowService.Setup(s => s.GetWorkflowRunAsync("test-owner", "test-repo", 123))
+        _mockWorkflowService.Setup(s => s.GetWorkflowRunAsync("test-owner", "test-repo", 123, It.IsAny<int>()))
             .ReturnsAsync(mockRun);
 
         // 执行测试

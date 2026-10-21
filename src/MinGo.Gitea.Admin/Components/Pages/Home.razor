@@ -194,9 +194,16 @@ else
         {
             "running" => "running",
             "in_progress" => "in_progress",
+            "queued" => "in_progress",
+            "waiting" => "in_progress",
+            "pending" => "in_progress",
             "completed" => "completed",
+            "success" => "completed",
             "failed" => "failed",
+            "failure" => "failed",
             "canceled" => "canceled",
+            "cancelled" => "canceled",
+            "skipped" => "completed",
             _ => status.ToLower()
         };
     }

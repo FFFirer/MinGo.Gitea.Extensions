@@ -11,12 +11,21 @@
             switch (Status?.ToLower())
             {
                 case "success":
+                case "completed":
                     return "bg-success-soft text-success";
                 case "running":
                 case "in_progress":
+                case "queued":
+                case "waiting":
+                case "pending":
                     return "bg-warn-soft text-warn";
                 case "failed":
+                case "failure":
                     return "bg-danger-soft text-danger";
+                case "cancelled":
+                case "canceled":
+                case "skipped":
+                    return "bg-surface-2 text-ink";
                 default:
                     return "bg-surface-2 text-ink";
             }
@@ -30,12 +39,22 @@
             switch (Status?.ToLower())
             {
                 case "success":
+                case "completed":
                     return "成功";
                 case "running":
                 case "in_progress":
+                case "queued":
+                case "waiting":
+                case "pending":
                     return "运行中";
                 case "failed":
+                case "failure":
                     return "失败";
+                case "cancelled":
+                case "canceled":
+                    return "已取消";
+                case "skipped":
+                    return "已跳过";
                 default:
                     return Status ?? "";
             }

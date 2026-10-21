@@ -161,9 +161,14 @@ public class WorkflowService
 
             if (onValue is Dictionary<string, object> onDict)
             {
-                if (onDict.TryGetValue("workflowDispatch", out var wd))
+                // YAML 键原样是 workflow_dispatch；兼容 camelCase 反序列化结果
+                if (onDict.TryGetValue("workflow_dispatch", out var wd1))
                 {
-                    workflowDispatch = wd as Dictionary<string, object>;
+                    workflowDispatch = wd1 as Dictionary<string, object>;
+                }
+                else if (onDict.TryGetValue("workflowDispatch", out var wd2))
+                {
+                    workflowDispatch = wd2 as Dictionary<string, object>;
                 }
             }
             else if (onValue is string onStr && onStr == "workflow_dispatch")
@@ -229,10 +234,21 @@ public class WorkflowService
 
         await client.TriggerWorkflowAsync(owner, repo, workflow.Id, @ref.Name, inputs);
 
-        await Task.Delay(TimeSpan.FromSeconds(5));
-
-        var runs = await client.GetWorkflowRunsAsync(owner, repo, headSha: @ref.CommitSha, @event: "workflow_dispatch", page: 1, limit: 1);
-        var run = runs.FirstOrDefault();
+        // GitHub/Gitea 创建 run 有延迟，轮询几次直到能查到本次 dispatch
+        WorkflowRun? run = null;
+        int? workflowIdFilter = int.TryParse(workflow.Id, out var wid) ? wid : null;
+        for (var attempt = 0; attempt < 6 && run == null; attempt++)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            var runs = await client.GetWorkflowRunsAsync(
+                owner, repo,
+                headSha: @ref.CommitSha,
+                @event: "workflow_dispatch",
+                page: 1,
+                limit: 10,
+                workflowId: workflowIdFilter);
+            run = runs.FirstOrDefault();
+        }
 
         if (_dbContext != null && run != null)
         {
@@ -256,7 +272,7 @@ public class WorkflowService
                 CreatedAt = run.CreatedAt,
                 UpdatedAt = run.UpdatedAt,
                 StartedAt = run.CreatedAt,
-                EndedAt = run.Status == "completed" ? run.UpdatedAt : null,
+                EndedAt = IsTerminalStatus(run.Status) ? run.UpdatedAt : null,
                 TriggerType = triggerType,
                 Inputs = inputsJson,
                 ConnectionId = workflow.ConnectionId,
@@ -272,7 +288,7 @@ public class WorkflowService
         return null;
     }
 
-    public virtual async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, int runId, int connectionId = 0)
+    public virtual async Task<WorkflowRun?> GetWorkflowRunAsync(string owner, string repo, long runId, int connectionId = 0)
     {
         var client = await GetClientAsync(connectionId);
         return client == null ? null : await client.GetWorkflowRunAsync(owner, repo, runId);
@@ -362,7 +378,7 @@ public class WorkflowService
         }
 
         var successful = await _dbContext.WorkflowRunHistories
-            .Where(h => h.Status == "completed" && h.Conclusion == "success")
+            .Where(h => (h.Status == "completed" || h.Status == "success") && h.Conclusion == "success")
             .CountAsync();
 
         return (successful, total);
@@ -400,8 +416,17 @@ public class WorkflowService
         }
 
         return await _dbContext.WorkflowRunHistories
-            .Where(h => h.Status == "in_progress")
+            .Where(h => h.Status == "in_progress" || h.Status == "running" || h.Status == "queued" || h.Status == "waiting" || h.Status == "pending")
             .CountAsync();
+    }
+
+    /// <summary>
+    /// 是否已进入终态。GitHub: completed；Gitea: success/failure/cancelled/skipped。
+    /// </summary>
+    public static bool IsTerminalStatus(string? status)
+    {
+        if (string.IsNullOrEmpty(status)) return false;
+        return status is "completed" or "success" or "failure" or "cancelled" or "canceled" or "skipped";
     }
 
     public async Task<IEnumerable<WorkflowRunHistory>> GetRecentRunsAsync(int count = 5)

@@ -35,7 +35,8 @@ public class Workflow
 
 public class WorkflowRun
 {
-    public int Id { get; set; }
+    // GitHub run id 已超过 int.MaxValue，必须用 long
+    public long Id { get; set; }
     public required string Name { get; set; }
     public required string Status { get; set; }
     public required string Conclusion { get; set; }
