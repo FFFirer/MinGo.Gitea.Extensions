@@ -177,24 +177,19 @@
                                         break;
                                     case "choice":
                                         <select class="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent-btn"
-                                                @bind="InputValues[input.Name]">
-                                            @if (!string.IsNullOrEmpty(input.DefaultValue))
+                                                value="@GetValue(input.Name)"
+                                                @onchange="@(e => OnInputChanged(input.Name, e.Value?.ToString() ?? ""))">
+                                            @foreach (var option in ChoiceOptions(input))
                                             {
-                                                <option value="">默认值: @input.DefaultValue</option>
-                                            }
-                                            @if (input.Options != null)
-                                            {
-                                                @foreach (var option in input.Options)
-                                                {
-                                                    <option value="@option">@option</option>
-                                                }
+                                                <option value="@option">@option</option>
                                             }
                                         </select>
                                         break;
                                     default:
                                         <input type="text" 
                                                class="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent-btn"
-                                               placeholder="@(input.DefaultValue ?? "")"
+                                               value="@GetValue(input.Name)"
+                                               placeholder="@DefaultHint(input)"
                                                @oninput="@(e => OnInputChanged(input.Name, e.Value?.ToString() ?? ""))">
                                         break;
                                 }
@@ -340,14 +335,7 @@
             }
             var inputs = await WorkflowService.GetWorkflowInputsAsync(repo.Owner, repo.Name, SelectedWorkflowPath, repo.ConnectionId);
             WorkflowInputs = inputs;
-            
-            foreach (var input in WorkflowInputs)
-            {
-                if (!string.IsNullOrEmpty(input.DefaultValue))
-                {
-                    InputValues[input.Name] = input.DefaultValue;
-                }
-            }
+            SeedInputDefaults();
         }
         catch (Exception ex)
         {
@@ -404,10 +392,7 @@
         InputValues[name] = value == "true" ? "true" : "false";
     }
 
-    private bool GetBoolValue(string name)
-    {
-        return InputValues.TryGetValue(name, out var val) && val == "true";
-    }
+    private bool GetBoolValue(string name) => IsTruthy(GetValue(name));
 
     private string GetBoolDisplay(string name)
     {
@@ -421,9 +406,42 @@
             CurrentStep--;
             if (CurrentStep < 4)
             {
-                InputValues.Clear();
+                SeedInputDefaults();
             }
         }
+    }
+
+    private void SeedInputDefaults()
+    {
+        InputValues.Clear();
+        foreach (var input in WorkflowInputs)
+        {
+            var value = input.Type == "boolean"
+                ? (string.IsNullOrEmpty(input.DefaultValue) ? "" : (IsTruthy(input.DefaultValue) ? "true" : "false"))
+                : input.DefaultValue ?? "";
+            if (!string.IsNullOrEmpty(value))
+            {
+                InputValues[input.Name] = value;
+            }
+        }
+    }
+
+    // YAML 的 true/false 反序列化后可能是 "True"/"False"，统一按不区分大小写判断
+    private static bool IsTruthy(string? value) => bool.TryParse(value, out var parsed) && parsed;
+
+    private string GetValue(string name) => InputValues.TryGetValue(name, out var value) ? value : "";
+
+    private static string DefaultHint(WorkflowInput input)
+        => string.IsNullOrEmpty(input.DefaultValue) ? "" : $"默认: {input.DefaultValue}";
+
+    private static List<string> ChoiceOptions(WorkflowInput input)
+    {
+        var options = input.Options ?? new List<string>();
+        if (!string.IsNullOrEmpty(input.DefaultValue) && !options.Contains(input.DefaultValue))
+        {
+            options = options.Prepend(input.DefaultValue).ToList();
+        }
+        return options;
     }
 
     private async Task Start()
