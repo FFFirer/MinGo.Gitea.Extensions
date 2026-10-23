@@ -44,6 +44,10 @@ bld/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
+# Vite/Tailwind 构建产物（源文件是 src/ 下的 css 与 tailwind 配置）
+src/MinGo.Gitea.Admin/wwwroot/.vite/
+src/MinGo.Gitea.Admin/wwwroot/index2.css
+
 # Visual Studio 2017 auto generated files
 Generated\ Files/
 
