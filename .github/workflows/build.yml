@@ -47,6 +47,7 @@ jobs:
 
           if [ "${{ github.event_name }}" == "push" ]; then
             VERSION="${GITHUB_REF#refs/tags/}"
+            VERSION="${VERSION#v}"
           else
             TIMESTAMP=$(date +"%Y%m%d%H%M%S")
             VERSION="dev-${GITHUB_SHA:0:7}-${TIMESTAMP}"
